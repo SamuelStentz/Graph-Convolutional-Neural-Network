@@ -48,6 +48,7 @@ def generate_dummy_silent(sequence, path_to_silent_files):
             done = True
         ind += 1
     if not found:
+        print("The requested sequence {} was not found in the silent file {} (Parsing Error)".format(sequence, silent_file))
         raise ValueError("The requested sequence {} was not found in the silent file {} (Parsing Error)".format(sequence, silent_file))
     if not done:
         end = len(lineList)
