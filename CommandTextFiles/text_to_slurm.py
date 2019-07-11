@@ -13,6 +13,7 @@ parser.add_argument("-path_sh", type=str)
 parser.add_argument("-mem", type=str)
 parser.add_argument("-delay", type=int)
 parser.add_argument("-batch", type=int)
+parser.add_argument("-time", type=str)
 
 args = parser.parse_args()
 
@@ -23,6 +24,10 @@ sh = args.path_sh
 delay = args.delay
 mem = args.mem
 batch = args.batch
+time = args.time
+
+if time == None:
+    time = "3-00:00:00"
 
 if batch == None:
     batch == 1
@@ -55,7 +60,7 @@ header ="""#!/bin/bash
 #SBATCH --mem {3}
 #SBATCH --output {0}.log
 #SBATCH --error {0}.err
-#SBATCH --time 3-00:00:00
+#SBATCH --time {5}
 #SBATCH --begin now
 
 cd {4}
@@ -72,7 +77,7 @@ counter = 0
 
 while i < len(lineList) + batch:
     command = r"{}{}_{}.sh".format(sh, job_name, counter)
-    header_specific = header.format(job_name, counter, 1, mem, path)
+    header_specific = header.format(job_name, counter, 1, mem, path, time)
     if os.path.isfile(command):
         os.remove(command)
     f = open(command, "w")
