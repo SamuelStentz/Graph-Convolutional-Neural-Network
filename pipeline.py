@@ -103,6 +103,7 @@ def seq_pose(seq, pr_path):
     if type(pose) == type("string"):
         return pose
     substrate_ind = protein_graph.index_substrate(pose)
+    index_p1 = seq.index(".") + 1
     active_ind = protein_graph.index_substrate_active_site(pose, index_p1 = index_p1,
                                                               upstream_buffer = 7, downstream_buffer = 1)
     interface_ind = sel(pose, active_ind, substrate_ind, k)
