@@ -490,7 +490,7 @@ def index_interface_8ang_original(pose,
                 ca_substrate_xyz = pose.residue(substrate_indices[j]).xyz("CA")
                 vec = to_numpy(ca_protease_xyz - ca_substrate_xyz)
                 dist = (sum([x*x for x in vec]))**.5
-                if dist <= 8:
+                if dist <= 10:
                     interface_indices.add(prot_indices[i])
     interface_indices = list(interface_indices)
     interface_indices.sort()
