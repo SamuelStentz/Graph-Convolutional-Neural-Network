@@ -152,8 +152,8 @@ class GraphConvolution(Layer):
                     tensor_name = 'weights_support_' + str(i) + '_M_' + str(j)
                     self.vars[tensor_name] = glorot([input_dim, output_dim], name=tensor_name)
             # make vector to do weighted sum of all convolved features (w in SUM(wi*(NxF')) for w in M)
-            self.vars["Features Combination"] = uniform(self.support.get_shape().as_list()[4],
-                                                            name="Features Combination")
+            self.vars["Features Combination"] =tf.Variable(tf.random_uniform([self.support.get_shape().as_list()[4]]))
+            #uniform(self.support.get_shape().as_list()[4], name="Features Combination")
             # make bias matrice
             if self.bias:
                 self.vars['bias'] = zeros([output_dim], name='bias')
@@ -189,11 +189,11 @@ class GraphConvolution(Layer):
             convolved_F = tf.add_n(temp)
             convolved_features.append(convolved_F)
         # stack list into one tensor of shape BatchNF'M
-        convolved_features = tf.stack[convolved_features, axis = 3]
+        convolved_features = tf.stack(convolved_features, axis = 3)
         # do weighted multiplication
-        tf.multiply(convolved_features, self.vars["Features Combination"])
+        convolved_features = tf.multiply(convolved_features, self.vars["Features Combination"])
         # sum together to remove 4th dimension
-        output = tf.add_n(convolved_features, axis = 3)
+        output = tf.reduce_sum(convolved_features, axis = 3)
         
         # bias
         if self.bias:

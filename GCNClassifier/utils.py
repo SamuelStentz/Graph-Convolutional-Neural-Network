@@ -129,7 +129,11 @@ def chebyshev_polynomials(adj, k):
 
     adj_normalized = normalize_adj(adj)
     laplacian = np.identity(adj.shape[0]) - adj_normalized
-    largest_eigval, _ = eigsh(laplacian, 1, which='LM') # should still work
+    try:
+        largest_eigval, _ = eigsh(laplacian, 1, which='LM') # should still work
+    except:
+        largest_eigval, _ = eigsh(laplacian, 1, which='LM') # should still work, some wierd bug
+        
     scaled_laplacian = (2. / largest_eigval[0]) * laplacian - np.identity(adj.shape[0])
 
     t_k = list()
