@@ -2,7 +2,7 @@
 import itertools
 
 #path to protein
-pr_path = "/projects/f_sdk94_1/EnzymeModelling/SilentFiles/HCV" 
+pr_path = "/projects/f_sdk94_1/EnzymeModelling/SilentFiles/HCV_A171T" 
 
 # possible graphs
 params = ["all_onehot_distance",  "all_onehot_energy", "all_onehot_energy_distance",  "all_onehot_energy_terms", "all_onehot_energy_terms_distance"]
@@ -12,7 +12,7 @@ selectors = ["8_ang"]
 graph_options = [params, ratios, selectors]
 
 graph_options_combos = list(itertools.product(*graph_options))
-pipeline_command_template = "python3 pipeline.py -params {0} -si {1} -is {2} -db selector_{2}_ratio_{1}_params_{0} -unsafe False -pr_path {3}\n"
+pipeline_command_template = "python3 pipeline.py -params {0} -si {1} -is {2} -db protease_{3}_selector_{2}_ratio_{1}_params_{0} -unsafe False -pr_path {3}\n"
 
 with open("graph_generation.txt", "w") as fh:
     for combo in graph_options_combos:
@@ -43,7 +43,7 @@ with open("model_generation.txt", "w") as fh:
     for graph_option in graph_options_combos:
         for model_option in model_options_combos:
             # name of the graph from first slurm batch command
-            graph_name = "selector_{2}_ratio_{1}_params_{0}".format(graph_option[0], graph_option[1], graph_option[2])
+            graph_name = "protease_{3}_selector_{2}_ratio_{1}_params_{0}".format(graph_option[0], graph_option[1], graph_option[2], pr_path)
             train_command = train_command_template.format(epochs, early_stopping, model_option[0],
                                                          model_option[1], model_option[2], model_option[3],
                                                          model_option[4], model_option[5], model_option[6],

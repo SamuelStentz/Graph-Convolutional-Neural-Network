@@ -2,6 +2,8 @@
 # By default they are run at /scratch/ss3410/GCNN. Additionally, you can specify where to put the .sh output file.
 # By default they go down on file directory ex) /scratch/ss3410/GCNN/
 
+"""python text_to_slurm.py -txt graph_generation.txt -job_name GGen -path_operation /scratch/ss3410/Graph-Convolutional-Neural-Network -path_sh /scratch/ss3410/Graph-Convolutional-Neural-Network/Commands -mem 8000 -batch 1 -time 10:00:00"""
+
 import argparse
 import os
 
@@ -70,13 +72,13 @@ cd {4}
 lineList = [x.strip() for x in lineList]
 
 if sh == None:
-    sh = "../Commands/"
+    sh = "../Commands"
 
 i = 0
 counter = 0
 
 while i < len(lineList) + batch:
-    command = r"{}{}_{}.sh".format(sh, job_name, counter)
+    command = r"{}/{}_{}.sh".format(sh, job_name, counter)
     header_specific = header.format(job_name, counter, 1, mem, path, time)
     if os.path.isfile(command):
         os.remove(command)
