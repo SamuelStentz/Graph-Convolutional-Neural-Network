@@ -4,6 +4,9 @@ import itertools
 #path to protein
 pr_path = "/projects/f_sdk94_1/EnzymeModelling/SilentFiles/HCV_A171T" 
 
+#classifier txt
+classifier = "HCV_A171T.txt"
+
 # possible graphs
 params = ["all_onehot_distance",  "all_onehot_energy", "all_onehot_energy_distance",  "all_onehot_energy_terms", "all_onehot_energy_terms_distance"]
 ratios = [0]
@@ -12,11 +15,11 @@ selectors = ["8_ang"]
 graph_options = [params, ratios, selectors]
 
 graph_options_combos = list(itertools.product(*graph_options))
-pipeline_command_template = "python3 pipeline.py -params {0} -si {1} -is {2} -db protease_{3}_selector_{2}_ratio_{1}_params_{0} -unsafe False -pr_path {3}\n"
+pipeline_command_template = "python3 pipeline.py -params {0} -si {1} -is {2} -db protease_{3}_selector_{2}_ratio_{1}_params_{0} -unsafe False -pr_path {3} -class {4}\n"
 
 with open("graph_generation.txt", "w") as fh:
     for combo in graph_options_combos:
-        fh.write(pipeline_command_template.format(combo[0], combo[1], combo[2], pr_path))
+        fh.write(pipeline_command_template.format(combo[0], combo[1], combo[2], pr_path, classifier))
         #print(pipeline_command_template.format(combo[0], combo[1], combo[2]))
 
 # possible parameters for model
