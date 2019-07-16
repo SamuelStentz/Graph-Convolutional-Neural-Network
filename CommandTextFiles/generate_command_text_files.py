@@ -22,7 +22,7 @@ pipeline_command_template = "python3 pipeline.py -params {0} -si {1} -is {2} -db
 
 with open("graph_generation.txt", "w") as fh:
     for combo in graph_options_combos:
-        fh.write(pipeline_command_template.format(combo[0], combo[1], combo[2], pr_path, classifier, protease))
+        fh.write(pipeline_command_template.format(combo[0], combo[1], combo[2], pr_path, classifier, protein))
         
 # possible parameters for model
 epochs = 2000
