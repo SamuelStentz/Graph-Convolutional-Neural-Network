@@ -215,8 +215,9 @@ class SelfAttention(Layer):
         
         self.hidden_units = hidden_units
         self.A = None
-        self.vars['Ws'] = tf.Variable(tf.random_uniform([attention_dim, self.hidden_units])) # AttentionxHidden
-        self.vars['W2'] = tf.Variable(tf.random_uniform([bias_dim, attention_dim])) # BiasxAttention
+        with tf.variable_scope(self.name + '_vars'):
+            self.vars['Ws'] = tf.Variable(tf.random_uniform([attention_dim, self.hidden_units])) # AttentionxHidden
+            self.vars['W2'] = tf.Variable(tf.random_uniform([bias_dim, attention_dim])) # BiasxAttention
 
     def _call(self, inputs):
         

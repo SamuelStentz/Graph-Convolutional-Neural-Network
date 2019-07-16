@@ -18,7 +18,7 @@ tf.set_random_seed(seed)
 # Settings
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_string('dataset', 'testset', 'Dataset string.')  # 'cora', 'citeseer', 'pubmed'
+flags.DEFINE_string('dataset', 'wholeset', 'Dataset string.')  # 'cora', 'citeseer', 'pubmed'
 flags.DEFINE_string('model', 'gcn', 'Model string.')  # 'gcn', 'gcn_cheby', 'dense'
 flags.DEFINE_float('learning_rate', 0.01, 'Initial learning rate.')
 flags.DEFINE_integer('epochs', 200, 'Number of epochs to train.')
@@ -32,14 +32,35 @@ flags.DEFINE_integer('early_stopping', 10, 'Tolerance for early stopping (# of e
 flags.DEFINE_integer('max_degree', 3, 'Maximum Chebyshev polynomial degree.')
 flags.DEFINE_string('save_validation', "False", "If you should save validation accuracy")
 flags.DEFINE_string('save_test', "False", "If this is optimized run! Use all data and save outputs")
+flags.DEFINE_integer('k-fold', -1, "If this run is a k-folded run! If given save_val, save_test, etc are all ignored")
+flags.DEFINE_string('test_dataset', 'testset', "If we are testing with a unique test_set")
 
 
 # Load data
 adj_ls, features, y_arr, sequences, labelorder, train_mask, val_mask, test_mask = load_data(FLAGS.dataset)
 
+# Check for independent test_dataset
+if FLAGS.test_dataset != "testset":
+    adj_ls_test, features_test, y_arr_test, sequences_test, _, _, _, test_mask = load_data(FLAGS.test_dataset)
+    adj_ls = np.concatenate((adj_ls, adj_ls_test), axis = 0)
+    features = np.concatenate((features, features_test), axis = 0)
+    y_arr = np.concatenate((y_arr, y_arr_test), axis = 0)
+    sequences = sequences + sequences_test
+    
+    # make all the indices true and false, then concatenate and invert for test and train
+    test_mask[0:len(test_mask)] = True
+    train_mask[0:len(train_mask)] = False
+
+    test_mask = np.concatenate((train_mask, test_mask))
+    train_mask = np.array([not xi for xi in test_mask], dtype = np.bool)
+    val_mask = np.array([False for xi in test_mask], dtype = np.bool)
+    
+
 #print("Train {}".format(train_mask))
 #print("Val {}".format(val_mask))
 #print("Test {}\n".format(test_mask))
+
+print("|Training| {}, |Validation| {}, |Testing| {}".format(np.sum(train_mask), np.sum(val_mask), np.sum(test_mask)))
 
 # Save with a name defined by model params
 model_desc = "hidden1_{0}_hidden2_{1}_dropout_{2}_attdim_{3}_attbias_{4}_model_{5}_maxdeg_{6}"
@@ -79,7 +100,7 @@ if save_test:
 
 # preload support tensor so that it isn't needlessly calculated many times
 batch,_,N,M = adj_ls.shape
-support_tensor = np.zeros(shape=(batch,num_supports,N,N,M)) # of shape (Batch,Num_Supports,Num_Nodes,Num_Nodes)
+support_tensor = np.zeros(shape=(batch,num_supports,N,N,M)) # of shape (Batch,Num_Supports,Num_Nodes,Num_Nodes,Num_Edge)
 print("Calculating Chebyshev polynomials up to order {}...".format(FLAGS.max_degree))
 for b in range(batch):
     adj = adj_ls[b]
@@ -153,7 +174,6 @@ for epoch in range(FLAGS.epochs):
     
     # Validation
     cost, acc, duration = evaluate(features, support_tensor, y_arr, val_mask, placeholders, model)
-
     cost_val.append(cost)
     
     # save training progression

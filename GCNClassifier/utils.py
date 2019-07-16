@@ -76,11 +76,7 @@ def load_data(dataset_str):
     train_mask = sample_mask(idx_train, y_arr.shape[0])
     val_mask = sample_mask(idx_val, y_arr.shape[0])
     test_mask = sample_mask(idx_test, y_arr.shape[0])
-    
-    
-    
-    print("|Training| {}, |Validation| {}, |Testing| {}".format(len(idx_train), len(idx_val), len(idx_test)))
-    
+
     return adj_ls, features, y_arr, sequences, labelorder, train_mask, val_mask, test_mask
 
 
