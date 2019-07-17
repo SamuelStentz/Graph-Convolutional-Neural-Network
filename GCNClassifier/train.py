@@ -96,7 +96,11 @@ if save_test:
     epoch_df.columns = ["train_loss", "train_acc", "val_acc", "val_loss", "time"]
     labels_df = pd.DataFrame(np.zeros(shape = (sum(test_mask), 5)))
     labels_df.columns = ["Sequence", "Label", "Prediction", "Negative Class Logit", "Positive Class Logit"]
-    
+    # add validation to training set for best results
+    train_mask = np.array([xi or yi for (xi, yi) in zip(train_mask, val_mask)], dtype = np.bool)
+
+# initial time
+ttot = time.time()
 
 # preload support tensor so that it isn't needlessly calculated many times
 batch,_,N,M = adj_ls.shape
@@ -148,12 +152,12 @@ sess.run(tf.global_variables_initializer())
 sess.run(model.running_vars_initializer)
 
 # Train model
-ttot = time.time()
+t = time.time()
 cost_val = []
 acc_val = []
 for epoch in range(FLAGS.epochs):
-    t = time.time()
-
+    t_epoch = time.time()
+    
     # instantiate all inputs
     features_train = features[test_mask,:,:]
     support = support_tensor[test_mask,:,:,:]
@@ -178,13 +182,14 @@ for epoch in range(FLAGS.epochs):
     
     # save training progression
     if save_test:
-        epoch_df.iloc[epoch, :] = [outs[1], outs[2], cost, acc, time.time() - t]
+        epoch_df.iloc[epoch, :] = [outs[1], outs[2], cost, acc, time.time() - t_epoch]
     
     # Print results
     if (epoch + 1) % 20 == 0:
         print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(outs[1]),
           "train_acc=", "{:.5f}".format(outs[2]), "val_loss=", "{:.5f}".format(cost),
           "val_acc=", "{:.5f}".format(acc), "time=", "{:.5f}".format(time.time() - t))
+        t = time.time()
 
     if epoch > FLAGS.early_stopping and cost_val[-1] > np.mean(cost_val[-(FLAGS.early_stopping + 1):-1]):
         print("Early stopping...")
@@ -210,7 +215,6 @@ if save_validation:
     with open(filename, "w") as fh:
         fh.write("{}\n{}\n{}".format(validation_accuracy, model_desc, FLAGS.dataset))
     
-
 # Saving results to a file
 if save_test:
     # get test values
