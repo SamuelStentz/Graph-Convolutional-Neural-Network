@@ -372,7 +372,7 @@ def index_substrate(pose):
             substrate_indices.append(count + 1)
     return substrate_indices
 
-def index_substrate_active_site(pose, index_p1 = 7, upstream_buffer = 7, downstream_buffer = 1):
+def index_substrate_active_site(pose, index_p1 = 7, upstream_buffer = 7, downstream_buffer = 1, protease = None):
     """This function takes the ROSETTA INDEX of the P1 residue for a substrate within its chain, a pose, and
     the number of upstream and downstream residues to model, and returns the indices of the substrate. If the
     buffer actually goes OOB of the substrate, a None type for that ind is instead returned for 0 pad modelling"""
@@ -386,7 +386,7 @@ def index_substrate_active_site(pose, index_p1 = 7, upstream_buffer = 7, downstr
             ind_active.append(ind_sub[index_interest])
     return ind_active
 
-def index_interface_k_nearest(pose, active_site, substrate_indices, k):
+def index_interface_k_nearest(pose, active_site, substrate_indices, k, protease = None):
     """This function takes a pose and a number of interface/substrate to consider and returns interface indices.
     Interface is defined as the k closest residues. They are returned in the order of how close they are."""
     # get protease indices, done by selecting all indices that are not the substrate
@@ -419,7 +419,7 @@ def index_interface_k_nearest(pose, active_site, substrate_indices, k):
     interface_indices = [int(x) for x in interface_indices]
     return interface_indices
 
-def index_interface_nearest_residuewise(pose, active_site, substrate_indices, k):
+def index_interface_nearest_residuewise(pose, active_site, substrate_indices, k, protease = None):
     """This function takes a pose and a number of interface_residues to consider and returns interface indices.
     Interface is defined as the k closest residues in the protease BY RESIDUE IN SUBSTRATE. They are in the order
     of substrates supplied i.e. substrate_indices = [1, 2] -> [1th ... 1kth, 2th ... 2kth]. IF the number is not
@@ -462,15 +462,15 @@ def index_interface_nearest_residuewise(pose, active_site, substrate_indices, k)
     
     return interface_ls[0:total_substrates]
 
-def index_interface_8ang_original(pose,
+def index_interface_10ang_original(pose,
                                     active_site,
                                     substrate_indices,
                                     k,
-                                    crystal_struct = "./GraphGeneration/CrystalStructures/HCV.pdb"):
+                                    protease = "HCV"):
     """This function takes a pose and a number of interface/substrate to consider and returns interface indices. The
     value k and pose are not used..."""
     # load default pose as original
-    print(os.getcwd())
+    crystal_struct = "./GraphGeneration/CrystalStructures/{}.pdb".format(protease)
     pose = pose_from_pdb(crystal_struct)
     
     # get protease indices, done by selecting all indices that are not the substrate

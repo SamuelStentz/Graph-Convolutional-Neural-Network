@@ -27,7 +27,7 @@ for i in range(len(df_orig.iloc[:,0])):
 row_ls = []
 for file in os.listdir(opt):
     path_file = os.path.join(opt, file)
-    if os.path.isfile(path_file):
+    if os.path.isfile(path_file) and ".gitignore" not in path_file:
         # reading in file values
         h = open(path_file, "r")
         ls = h.readlines()

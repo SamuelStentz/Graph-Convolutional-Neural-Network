@@ -70,8 +70,8 @@ elif sel == "k_nearest":
     sel = protein_graph.index_interface_k_nearest
 elif sel == "residue_wise":
     sel = protein_graph.index_interface_nearest_residuewise
-elif sel == "8_ang":
-    sel = protein_graph.index_interface_8ang_original
+elif sel == "10_ang":
+    sel = protein_graph.index_interface_10ang_original
 else:
     raise ValueError("Invalid selector for protease interface!")
 
@@ -106,7 +106,7 @@ def seq_pose(seq, pr_path):
     index_p1 = seq.index(".") + 1
     active_ind = protein_graph.index_substrate_active_site(pose, index_p1 = index_p1,
                                                               upstream_buffer = 7, downstream_buffer = 1)
-    interface_ind = sel(pose, active_ind, substrate_ind, k)
+    interface_ind = sel(pose, active_ind, substrate_ind, k, protease = pr_path.split("/")[-1])
     g = protein_graph.protein_graph(pose = pose,
                                        substrate_indices = active_ind,
                                        interface_indices = interface_ind,
