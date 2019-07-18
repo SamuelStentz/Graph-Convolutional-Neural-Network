@@ -1,3 +1,4 @@
+# %load generate_command_text_files.py
 
 import itertools
 
@@ -26,7 +27,7 @@ with open("graph_generation.txt", "w") as fh:
         
 # possible parameters for model
 epochs = 1000
-early_stopping = 100
+early_stopping = 200
 hidden1 = [20, 15, 10, 5]
 hidden2 = [20, 15, 10, 5]
 dropout = [0, .1, .2, .3]
@@ -40,7 +41,7 @@ accuracy_validation = True
 model_options = [hidden1, hidden2, dropout, attention_dim, attention_bias, model, max_degree]
 
 model_options_combos = list(itertools.product(*model_options))
-train_command_template = "python3 train.py -epochs {0} -early_stopping {1} -hidden1 {2} -hidden2 {3} -dropout {4} "\
+train_command_template = "python3 train.py -epochs {0} -early_stopping {1} -graph_conv_dimensions [{2},{3}] -dropout {4} "\
                             "-attention_dim {5} -attention_bias {6} -model {7} -max_degree {8} -dataset {9} "\
                             "-save_test {10} -save_validation {11}"
 

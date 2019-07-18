@@ -113,19 +113,14 @@ class Dense(Layer):
         # dropout
         x = tf.nn.dropout(x, 1-self.dropout)
         
-        # add dummy dimension
-        x = tf.expand_dims(x, 1) # Batch1M
-        
         # transform
-        (batch, n, m) = x.get_shape().as_list()
-        p = self.vars['weights'].get_shape().as_list()[1]
-        output = tf.reshape(tf.reshape(x, [-1, m]) @ self.vars['weights'], [-1, n, p]) # BatchNM * MP => Batch1P (N should be 1)
+        output = x @ self.vars['weights']
         
         # bias
         if self.bias:
             output += self.vars['bias']
-
-        return self.act(output) # Batch1P
+    
+        return self.act(output) # BatchOutput
 
 class GraphConvolution(Layer):
     """Graph convolution layer."""
@@ -152,13 +147,10 @@ class GraphConvolution(Layer):
                     tensor_name = 'weights_support_' + str(i) + '_M_' + str(j)
                     self.vars[tensor_name] = glorot([input_dim, output_dim], name=tensor_name)
             # make vector to do weighted sum of all convolved features (w in SUM(wi*(NxF')) for w in M)
-            self.vars["Features Combination"] =tf.Variable(tf.random_uniform([self.support.get_shape().as_list()[4]]))
-            #uniform(self.support.get_shape().as_list()[4], name="Features Combination")
+            self.vars["Features Combination"] = tf.Variable(tf.random_uniform([self.support.get_shape().as_list()[4]]))
             # make bias matrice
             if self.bias:
                 self.vars['bias'] = zeros([output_dim], name='bias')
-            
-        
         if self.logging:
             self._log_vars()
 
@@ -216,37 +208,25 @@ class SelfAttention(Layer):
         self.hidden_units = hidden_units
         self.A = None
         with tf.variable_scope(self.name + '_vars'):
-            self.vars['Ws'] = tf.Variable(tf.random_uniform([attention_dim, self.hidden_units])) # AttentionxHidden
-            self.vars['W2'] = tf.Variable(tf.random_uniform([bias_dim, attention_dim])) # BiasxAttention
+            self.vars['Ws'] = glorot([attention_dim, self.hidden_units])#tf.Variable(tf.random_uniform([attention_dim, self.hidden_units])) # AttentionxHidden
+            self.vars['W2'] = glorot([bias_dim, attention_dim])#tf.Variable(tf.random_uniform([bias_dim, attention_dim])) # BiasxAttention
 
     def _call(self, inputs):
-        
         # dropout
         inputs = tf.nn.dropout(inputs, 1-self.dropout)
-        
-        # AttentionxHidden * ?xHiddenxN => ?xAttentionxN
         inputsT = tf.transpose(inputs, perm = [0, 2, 1]) # transpose the inner matrices which is our intention
         
-        #print("inputsT is of shape {}".format(inputsT.get_shape().as_list()))
-        #print("self.vars[Ws] is of shape {}".format(self.vars['Ws'].get_shape().as_list()))
-        
+        # AttentionxHidden * ?xHiddenxN => ?xAttentionxN
         aux = tf.einsum('ah,bhn->ban', self.vars['Ws'], inputsT)
         aux = tf.tanh(aux)
-        
-        #print("aux is of shape {}".format(aux.get_shape().as_list()))
-        
         
         # BiasxAttention * ?xAttentionxN => ?xBiasxN
         self.A = tf.einsum('ba,uan->ubn',self.vars['W2'], aux)
         self.A = tf.nn.softmax(self.A)
-        #print("A is of shape {}".format(self.A.get_shape().as_list()))
-        #tf.summary.histogram('self_attention', self.A) For visualization
         
         # ?xBiasxN * ?xNxHidden => ?xBiasxHidden
         out = self.A @ inputs
-        #print("out is of shape {}".format(out.get_shape().as_list()))
         
         # ?xBiasxHidden => ?x(Bias*Hidden)
         out = tf.reshape(out, [ -1, out.get_shape().as_list()[1] * out.get_shape().as_list()[2]])
-        #print("out is of shape {}".format(out.get_shape().as_list()))
         return out
