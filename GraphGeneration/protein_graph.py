@@ -87,7 +87,8 @@ class protein_graph:
                             "energy_terms":[],
                             "energy_edge_terms":[],
                             "distance":False,
-                            "energy":True},
+                            "energy":True,
+                            "interface_edge":False},
                  sfxn = None):
         
         # assure user provided a source
@@ -161,7 +162,7 @@ class protein_graph:
         if params["energy"]: M += 1
         if params["distance"]: M += 1
         M += len(params["energy_edge_terms"])
-        
+        if params["interface_edge"]: M += 1
         
         # initialize A (Multiple Adj. Mat. NxNxM)
         self.A = np.zeros(shape = (N, N, M))
@@ -355,6 +356,10 @@ class protein_graph:
                             self.A[j, i, counter_M + add + counter] = emap[term]
             counter_M += add
             counter_M += len(params["energy_edge_terms"])
+        if params["interface_edge"]:
+            self.A[0:len(substrate_indices), len(substrate_indices):len(vertice_arr)] = 1
+            self.A[len(substrate_indices):len(vertice_arr), 0:len(substrate_indices)] = 1
+            counter_M += 1
 
 #####################################################################################################################
 

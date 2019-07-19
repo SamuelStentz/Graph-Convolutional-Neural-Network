@@ -31,6 +31,7 @@ class Model(object):
         
         self.loss = 0
         self.accuracy = 0
+        self.f1_score = 0
         self.optimizer = None
         self.opt_op = None
 
@@ -99,12 +100,26 @@ class GCN(Model):
         for var in self.layers[0].vars.values():
             self.loss += FLAGS.weight_decay * tf.nn.l2_loss(var)
         
-        # Cross entropy error
-        labels = self.placeholders['labels']
-        logits = self.outputs
-        entropies = tf.nn.softmax_cross_entropy_with_logits_v2(logits = logits, labels = labels, dim = -1)
-        loss = tf.reduce_mean(entropies)
-        self.loss += loss
+        if FLAGS.balanced_training == "True":
+            labels = self.placeholders['labels']
+            logits = self.outputs
+            # Get relative frequency of each class
+            class_counts = tf.reduce_sum(labels, 0)
+            class_frequencies = class_counts / tf.reduce_sum(class_counts)
+            # Cross entropy error
+            entropies = tf.nn.softmax_cross_entropy_with_logits_v2(logits = logits, labels = labels, dim = -1)
+            # Scale by 1/frequency
+            scalers = labels / class_frequencies
+            scalers = tf.reduce_sum(scalers, 1)
+            entropies_scaled = scalers * entropies
+            self.loss += tf.reduce_mean(entropies_scaled)
+        else:
+            # Cross entropy error
+            labels = self.placeholders['labels']
+            logits = self.outputs
+            entropies = tf.nn.softmax_cross_entropy_with_logits_v2(logits = logits, labels = labels, dim = -1)
+            loss = tf.reduce_mean(entropies)
+            self.loss += loss
 
     def _accuracy(self):
         labels = self.placeholders['labels']
@@ -114,7 +129,7 @@ class GCN(Model):
         predictions=tf.argmax(logits, 1) # prediction as one hot
         self.predictions = predictions
         
-        # Define the metric and update operations
+        # Define the metric and update operations, f1 score is also calculated
         tf_metric, tf_metric_update = tf.metrics.accuracy(predictions = predictions, labels = labels, name = "accuracy")
         self.accuracy = tf_metric_update
         

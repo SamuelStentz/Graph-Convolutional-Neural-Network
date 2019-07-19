@@ -73,7 +73,8 @@ def pickle_many_param_dicts():
                     "energy_terms":[],
                     "energy_edge_terms":[],
                     "distance":False,
-                    "energy":True})
+                    "energy":True,
+                    "interface_edge":False})
     ls_d.append({"amino_acids":True,
                     "blosum": False,
                     "sinusoidal_encoding":3,
@@ -83,7 +84,8 @@ def pickle_many_param_dicts():
                     "energy_terms":[],
                     "energy_edge_terms":[fa_rep, fa_sol, fa_elec, lk_ball_wtd, hbond_sr_bb, hbond_lr_bb, hbond_bb_sc, fa_dun],
                     "distance":True,
-                    "energy":False})
+                    "energy":False,
+                    "interface_edge":False})
     ls_d.append({"amino_acids":True,
                     "blosum": False,
                     "sinusoidal_encoding":3,
@@ -93,7 +95,8 @@ def pickle_many_param_dicts():
                     "energy_terms":[],
                     "energy_edge_terms":[fa_rep, fa_sol, fa_elec, lk_ball_wtd, hbond_sr_bb, hbond_lr_bb, hbond_bb_sc, fa_dun],
                     "distance":False,
-                    "energy":False})
+                    "energy":False,
+                    "interface_edge":False})
     ls_d.append({"amino_acids":True,
                     "blosum": False,
                     "sinusoidal_encoding":3,
@@ -103,7 +106,8 @@ def pickle_many_param_dicts():
                     "energy_terms":[],
                     "energy_edge_terms":[fa_rep, fa_sol, fa_elec, lk_ball_wtd, hbond_sr_bb, hbond_lr_bb, hbond_bb_sc, fa_dun],
                     "distance":True,
-                    "energy":False})
+                    "energy":False,
+                    "interface_edge":False})
     ls_d.append({"amino_acids":True,
                     "blosum": False,
                     "sinusoidal_encoding":3,
@@ -113,7 +117,8 @@ def pickle_many_param_dicts():
                     "energy_terms":[],
                     "energy_edge_terms":[],
                     "distance":True,
-                    "energy":True})
+                    "energy":True,
+                    "interface_edge":False})
 
     ls_datasets = ["all_onehot_energy", "all_onehot_distance",
         "all_onehot_energy_terms", "all_onehot_energy_terms_distance", "all_onehot_energy_distance"]

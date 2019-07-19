@@ -57,9 +57,10 @@ if FLAGS.test_dataset != "testset":
     val_mask = np.array([False for xi in test_mask], dtype = np.bool)
 
 # Save with a name defined by model params
-model_desc = "graphconv_{0}_dropout_{1}_attdim_{2}_attbias_{3}_fc_{4}_model_{5}_maxdeg_{6}"
+model_desc = "learningrate_{7}_epochs_{8}__graphconv_{0}_dropout_{1}_attdim_{2}_attbias_{3}_fc_{4}_model_{5}_maxdeg_{6}"
 model_desc = model_desc.format(FLAGS.graph_conv_dimensions, FLAGS.dropout, FLAGS.attention_dim,
-                              FLAGS.attention_bias, FLAGS.connected_dimensions, FLAGS.model, FLAGS.max_degree)
+                              FLAGS.attention_bias, FLAGS.connected_dimensions, FLAGS.model, FLAGS.max_degree,
+                              FLAGS.learning_rate, FLAGS.epochs)
 
 # determine num_supports and make model function
 if FLAGS.model == 'gcn':
@@ -187,11 +188,12 @@ for epoch in range(FLAGS.epochs):
     # Print results
     if (epoch + 1) % 20 == 0:
         print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(outs[1]),
-          "train_acc=", "{:.5f}".format(outs[2]), "val/test_loss=", "{:.5f}".format(cost),
-          "val/test_acc=", "{:.5f}".format(acc), "time=", "{:.5f}".format(time.time() - t))
+          "train_acc=", "{:.5f}".format(outs[2]),
+          "val/test_loss=", "{:.5f}".format(cost), "val/test_acc=", "{:.5f}".format(acc),
+          "time=", "{:.5f}".format(time.time() - t))
         t = time.time()
 
-    if epoch > FLAGS.early_stopping and cost_ls[-1] > np.mean(cost_ls[-(FLAGS.early_stopping + 1):-1]):
+    if epoch > FLAGS.early_stopping and cost_ls[-1] > np.mean(cost_ls[max(-40, -1 * FLAGS.early_stopping):-1]):
         print("Early stopping...")
         break
 
