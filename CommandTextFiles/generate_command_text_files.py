@@ -12,7 +12,7 @@ pr_path = "/projects/f_sdk94_1/EnzymeModelling/SilentFiles/{}"
 classifier = "{}.txt"
 
 # possible graphs
-params = ["all_onehot_distance",  "all_onehot_energy", "all_onehot_energy_distance",  "all_onehot_energy_terms", "all_onehot_energy_terms_distance"]
+params = [str(i) for i in range(8)]
 ratios = [0]
 selectors = ["10_ang"]
 
@@ -26,16 +26,16 @@ with open("graph_generation.txt", "w") as fh:
         fh.write(pipeline_command_template.format(combo[0], combo[1], combo[2], pr_path.format(combo[3]), classifier.format(combo[3]), combo[3]))
         
 # possible parameters for model
-learning_rate = [.005, .01, .02]
-epochs = [150, 300, 450]
+learning_rate = [.005, .01]
+epochs = [200, 300, 400, 500]
 graph_conv = [20, 10]
-num_conv = [1, 2, 3, 4]
-connected = [20, 10]
+num_conv = [1, 2, 3]
+connected = [20]
 num_connected = [0, 1, 2]
-dropout = [0,.2,.4,.6]
+dropout = [0,.2]
 attention_dim = [10]
-attention_bias = [1]
-model = ["gcn_cheby"]
+attention_bias = [1, 2, 3]
+model = ["gcn_cheby", "gcn"]
 max_degree = [3]
 accuracy_test = False
 accuracy_validation = True

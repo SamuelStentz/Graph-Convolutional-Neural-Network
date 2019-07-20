@@ -20,22 +20,21 @@ df = pd.read_csv(mat, sep = " ", index_col = 0)
 df = df[[x for x in all_amino_acids]]
 mat = df
 
-#global variables, need to get mw of all these atoms
-types = {'1HG2', ' NE2', ' NV ', ' CE1', '3HG2', ' SG ', ' C  ', ' OG1', '1HB ', ' CZ3', ' CD2',
-             ' HH ', '2HA ', ' OD1', '2H  ', ' HZ ', '3HD1', ' HG ', '3HG1', ' ND2', '1HG ', ' NE1',
-             ' NH2', ' OG ', '1HH1', '2HG ', ' HE ', ' OXT', '1HE2', ' CZ2', ' N  ', ' CG ', '1HD ',
-             '3H  ', ' CZ ', '2HH1', ' CE3', '2HB ', '2HZ ', '1HE ', '2HG2', ' HZ2', ' CG2', '1HH2',
-             ' O  ', '1HD1', '2HH2', ' CD ', ' HD1', ' HE3', ' ND1', '3HZ ', ' HA ', '1HD2', '1H  ',
-             ' HE2', ' HE1', ' SD ', '2HD2', ' CE2', '1HG1', ' CE ', '2HD1', ' OH ', ' CD1', ' HD2',
-             '3HE ', ' H  ', '2HE2', ' HH2', ' OE2', '2HD ', ' OE1', ' HZ3', '1HZ ', ' CA ', '3HB ',
-             '2HG1', '1HA ', ' HG1', ' CB ', ' NH1', ' CH2', ' HB ', ' OD2', ' NE ', ' NZ ', '3HD2', ' CG1', '2HE '}
-atom_mw = defaultdict(int)
-for t in types:
-    atom_mw[t] = 1
+# atomic weight dictionary
+atom_mw={' SG ': 32.06, ' CD1': 12.011, ' CB ': 12.011, ' HH ': 1.008,'2HA ': 1.008, ' HB ': 1.008, '1HG ': 1.008,
+        ' NV ': 14.007, '3H  ': 1.008, ' OG1': 15.999, ' CG2': 12.011, '2H  ': 1.008, '1HB ': 1.008, ' CH2': 12.011, ' HD2': 1.008,
+        ' OD1': 15.999, '2HZ ': 1.008, ' H  ': 1.008, ' HD1': 1.008, '1HA ': 1.008, '3HG1': 1.008, '1HH2': 1.008, '2HD2': 1.008,
+        ' CE3': 12.011, ' OD2': 15.999, ' O  ': 15.999, ' CA ': 12.011, ' ND2': 14.007, '1HE2': 1.008, '2HH2': 1.008, '2HB ': 1.008,
+        ' C  ': 12.011, ' NE ': 14.007, '3HD2': 1.008, ' CG ': 12.011, ' OE1': 15.999, ' SD ': 32.06, '2HH1': 1.008, '1H  ': 1.008,
+        '3HD1': 1.008, ' HH2': 1.008, ' HZ ': 1.008, ' CG1': 12.011, ' NH1': 14.007, ' NH2': 14.007, ' HE1': 1.008, ' CD ': 12.011,
+        ' OE2': 15.999, ' OH ': 15.999, '3HE ': 1.008, '2HD ': 1.008, ' CZ ': 12.011, ' HE3': 1.008, ' HE2': 1.008, ' HZ2': 1.008,
+        '1HD2': 1.008, '2HE2': 1.008, '1HD1': 1.008, ' CE ': 12.011, '2HD1': 1.008, ' HE ': 1.008, ' CZ2': 12.011, ' ND1': 14.007,
+        ' NE2': 14.007, ' NZ ': 14.007, ' NE1': 14.007, '2HG2': 1.008, '3HB ': 1.008, ' CE2': 12.011, ' N  ': 14.007, ' OG ': 15.999,
+        '1HZ ': 1.008, ' HG ': 1.008, ' CZ3': 12.011, '3HG2': 1.008, '1HG1': 1.008, '1HE ': 1.008, ' HG1': 1.008, '1HH1': 1.008,
+        '1HG2': 1.008, ' OXT': 15.999, '2HG ': 1.008, '2HE ': 1.008, ' CD2': 12.011, '3HZ ': 1.008, '1HD ': 1.008, ' HZ3': 1.008,
+        ' CE1': 12.011, '2HG1': 1.008, ' HA ': 1.008}
 
-####################################################################################################################
-
-# helper classes
+# helper functions
 def to_numpy(vec):
     """Takes a vector from pyrosetta and converts it into a numpy array"""
     return np.array([vec.x, vec.y, vec.z])
@@ -47,12 +46,9 @@ def com(residue, indices = None):
         indices = np.arange(1, 1 + residue.natoms())
     if len(indices) == 0:
         return to_numpy(residue.xyz(1))
-    
     weighted_vec = sum([(to_numpy(residue.xyz(x)) * atom_mw[residue.atom_name(x)]) for x in indices])
     tot_mass = sum([atom_mw[residue.atom_name(x)] for x in indices])
     return weighted_vec / tot_mass
-
-####################################################################################################################
 
 class protein_graph:
     """This class is going to hold a graphical representation of a protein. It can be generated from two sources:
@@ -63,34 +59,36 @@ class protein_graph:
     The substrate's indices are the last in the pdb/pose
     When supplied interface and substrate are non-zero length
     The intersection of substrate and interface indices is empty
-    
-    The indices of V are as follows:
-    one hot vectors for amino acid type
-    sinusoidal positional encoding (each increment represents a higher encoding)
-    cosine similarity between sidechain and residue COM (actual weighted center of mass used)
-    normalized (div by max) distance from Ca carbon to COM protein (rosetta's 'com')
-    
-    The indices of A are as follows:
-    distance between residue i,j pair's Ca
-    interaction energies for i,j pair"""
+    Only canonical amino acids are not supported
+
+    Possible Values:
+    energy_terms = [fa_intra_sol_xover4, fa_intra_rep, rama_prepro, omega, p_aa_pp, fa_dun, ref]
+    energy_edge_terms = [pro_close, fa_atr, fa_rep, fa_sol, fa_elec, lk_ball_wtd]"""
     
     def __init__ (self, substrate_indices = None,
                   interface_indices = None,
                   pdb_file_path = None,
                   pose = None,
-                  params = {"amino_acids":True,
-                            "blosum": True,
-                            "sinusoidal_encoding":0,
-                            "cosine_similarity":False,
-                            "center_measure":False,
-                            "interface_boolean":False,
-                            "energy_terms":[],
-                            "energy_edge_terms":[],
-                            "distance":False,
-                            "energy":True,
-                            "interface_edge":False},
-                 sfxn = None):
-        
+                  params = dict(),
+                  sfxn = None):
+        # if a parameter dict is missing a parameter then not used
+        empty_params = {"amino_acids":False,
+                    "blosum": False,
+                    "sinusoidal_encoding":0,
+                    "cosine_similarity":False,
+                    "center_measure":False,
+                    "interface_boolean":False,
+                    "energy_terms":[],
+                    "energy_edge_terms":[],
+                    "distance":False,
+                    "energy":False,
+                    "covalent_edge":False,
+                    "interface_edge":False,
+                    "hydrogen_bonding":False}
+        for key in empty_params:
+            if key not in params:
+                params[key] = empty_params[key]
+
         # assure user provided a source
         if pdb_file_path == None and pose == None:
             raise PathNotDeclaredError("No pose or pdb path provided")
@@ -98,9 +96,7 @@ class protein_graph:
         # make pose from pdb
         if pdb_file_path != None:
             try:
-                # clean the pdb file so that it conforms to rosetta standards
                 cleanATOM(pdb_file_path)
-                # read in pdb file 
                 pose = pose_from_pdb(pdb_file_path)
             except:
                 raise PathNotDeclaredError("Failed to generate pose, file path invalid or other issue")
@@ -120,58 +116,48 @@ class protein_graph:
             interface_indices = np.array([])
             substrate_indices = np.array([])
         
-        # parse through the provided params dict to determine F       
-        if params["amino_acids"]:
-            num_amino = 20
-        else:
-            num_amino = 0
-        if params["blosum"]:
-            num_blosum = 20
-        else:
-            num_blosum = 0
+        # Get All Node Features
+        if params["amino_acids"]: num_amino = 20
+        else: num_amino = 0
+        if params["blosum"]: num_blosum = 20
+        else: num_blosum = 0
         num_dim_sine = params["sinusoidal_encoding"]
-        if params["cosine_similarity"]:
-            cosine_sim = 1
-        else:
-            cosine_sim = 0
-        if params["center_measure"]:
-            center_measure = 1
-        else:
-            center_measure = 0
+        if params["cosine_similarity"]: cosine_sim = 1
+        else:cosine_sim = 0
+        if params["center_measure"]: center_measure = 1
+        else: center_measure = 0
         energy_terms = len(params["energy_terms"])
         
-        # make score function and energies objects, apply the score function
-        if sfxn == None:
-            sfxn = get_fa_scorefxn()
+        # Make and Apply Score Function
+        if sfxn == None: sfxn = get_fa_scorefxn()
         sfxn(pose)
         energies = pose.energies()
         
-        # set N (number of residues)
+        # Determine N (number of residues)
         N = len(vertice_arr)
         
-        # set F (number of node features) the tallies are here just for my sanity
+        # Determine F (number of node features)
         F = sum([num_amino, num_dim_sine, cosine_sim, center_measure, energy_terms, num_blosum])
-        if params["interface_boolean"]:
-            F += 1
+        if params["interface_boolean"]: F += 1
         
-        # initialize V (Feature Tensor NxF)
+        # Initialize V (Feature Tensor NxF)
         self.V = np.zeros(shape = (N, F))
         
-        # get M
+        # Determine M (number of edge features)
         M = 0
         if params["energy"]: M += 1
         if params["distance"]: M += 1
         M += len(params["energy_edge_terms"])
         if params["interface_edge"]: M += 1
-        
+        if params["covalent_edge"]: M += 1
+        if params["hydrogen_bonding"]: M += 1
+
         # initialize A (Multiple Adj. Mat. NxNxM)
         self.A = np.zeros(shape = (N, N, M))
-        
-        counter_F = 0 # this is just for sanity, it increments to index F that is being populated
+        counter_F = 0
         counter_M = 0
-#####################################################################################################################
 
-        # populates the 20 one-hot vectors for amino acid type
+        # One Hot Vectors for Amino Acid Type
         if params["amino_acids"]:
             all_amino_acids = "ACDEFGHIKLMNPQRSTVWY"
             seq = pose.sequence()        
@@ -184,8 +170,7 @@ class protein_graph:
                     self.V[i][j] = 1
             counter_F += 20
 
-#####################################################################################################################
-
+        # Blosum Encoding for Amino Acid Type
         if params["blosum"]:
             all_amino_acids = "ACDEFGHIKLMNPQRSTVWY"
             seq = pose.sequence()        
@@ -197,12 +182,9 @@ class protein_graph:
                     blosum_vec = df.loc[aa, :]
                     self.V[i, counter_F:(counter_F + 20)] = blosum_vec
             counter_F += 20
-            
-#####################################################################################################################
         
-        # add residue's sinusoidal positional encoding information
+        # Sinusoidal Positional Encoding
         if num_dim_sine != 0:
-            #print("encoding from {} to {}".format(len(all_amino_acids), len(all_amino_acids) + num_dim_sine - 1))
             if not substrate_indices.any() and not interface_indices.any():
                 n_position = N
                 position_enc = np.array([
@@ -223,9 +205,8 @@ class protein_graph:
                 for i in range(len(substrate_indices)):
                     if substrate_indices[i] != None:
                         self.V[i, counter_F:(counter_F + num_dim_sine)] = position_enc[i, :]
-
                 # add interface
-                n_position = len(pose.sequence()) #- len(substrate_indices)
+                n_position = len(pose.sequence()) - len(substrate_indices)
                 position_enc = np.array([
                     [pos / np.power(10000, 2*i/num_dim_sine) for i in range(num_dim_sine)]
                     if pos != 0 else np.zeros(num_dim_sine) for pos in range(n_position)])
@@ -245,47 +226,37 @@ class protein_graph:
                 self.V[0:n_position,counter_F:(counter_F + num_dim_sine)] = position_enc
             counter_F += num_dim_sine
 
-#####################################################################################################################
-
-        # get all vector calculations to get cosine similarity for sidechain
+        # Cosine Similarity: Sidechain COM <- Residue Ca -> Protein COM
         if params["cosine_similarity"]:
             ind_cosine = counter_F
-            #print("cosine similarity at {}".format(ind_cosine))
             # protein's COM
             center_protein_xyz = to_numpy(pyrosetta.rosetta.core.pose.center_of_mass(pose, i, i))
-
             # iterate through all residues
             for i in range(len(vertice_arr)):
                 if vertice_arr[i] != None:
                     i_ind = vertice_arr[i]
                     res = pose.residue(i_ind)
-
                     # alpha-Carbon to protein's COM vector
                     ca_com_xyz = to_numpy(res.xyz("CA"))
-
                     # alpha-Carbon to protein's COM vector
                     ca_protein = center_protein_xyz - ca_com_xyz
-
                     # all indices of side-chains
                     indices = []
                     for atom_index in range(1, res.natoms() + 1):
                         if not res.atom_is_backbone(atom_index):
                             indices.append(atom_index)
-
                     # alpha-Carbon to sidechain COM vector
                     center_sidechain_xyz = com(res, indices)
                     ca_sidechain = center_sidechain_xyz - ca_com_xyz
-
                     # add cosine similarity
                     divisor = np.linalg.norm(ca_sidechain) * np.linalg.norm(ca_protein)
                     if divisor != 0:
                         self.V[i, ind_cosine] = ca_sidechain.dot(ca_protein) / divisor
             counter_F += 1
                 
-        # get all vector calculations to get distance from protein COM to Ca position
+        # Normalized Distance: Protein COM -> Residue Ca
         if params["center_measure"]:
             ind_com = counter_F
-            #print("COM at {}".format(ind_com))
             # protein's COM
             center_protein_xyz = to_numpy(pyrosetta.rosetta.core.pose.center_of_mass(pose, i, i))
             # iterate through all residues
@@ -300,13 +271,8 @@ class protein_graph:
             # normalize across the com to be between 0 and 1 (max normalization)
             self.V[:, ind_com] = self.V[:, ind_com] / max(self.V[:, ind_com])
             counter_F += 1
-            
-#####################################################################################################################
-            
-        # add all energy terms
-        
-        #print("energy from {} to {}".format(num_amino + num_dim_sine + cosine_sim + center_measure,
-        #                                    num_amino + num_dim_sine + cosine_sim + center_measure + energy_terms - 1))
+
+        # Single Body Energy Terms
         for counter, term in enumerate(params["energy_terms"], counter_F):
             for i in range(N):
                 if vertice_arr[i] != None:
@@ -314,18 +280,12 @@ class protein_graph:
                 if max(abs(self.V[:, counter])) != 0:
                     self.V[:, counter] = self.V[:, counter] / max(abs(self.V[:, counter]))
         counter_F += energy_terms
-        
-#####################################################################################################################
 
-        # add to the end the interface/substrate boolean if interface is not None
+        # Interface-Substrate boolean
         if params["interface_boolean"]:
-            #print("interface one-hot vector {}".format(num_amino + num_dim_sine + \
-            #                                       cosine_sim + center_measure + energy_terms))
             self.V[0:len(substrate_indices),counter_F] = np.array([1 for x in range(len(substrate_indices))])
 
-#####################################################################################################################
-
-        # fill in A with distances
+        # Euclidean Distances
         if params["distance"]:
             for i in range(len(vertice_arr)):
                 for j in range(i, len(vertice_arr)):
@@ -336,8 +296,9 @@ class protein_graph:
                         self.A[i, j, counter_M] = dist
                         self.A[j, i, counter_M] = dist
             counter_M += 1
+
+        # Total Two Body Energy and Energy Terms
         if params["energy"] or len(params["energy_edge_terms"]) != 0:
-            # add residue-residue interaction energies or terms or both!
             add = 1 if params["energy"] else 0
             for i in range(len(vertice_arr)):
                 for j in range(i, len(vertice_arr)):
@@ -356,12 +317,37 @@ class protein_graph:
                             self.A[j, i, counter_M + add + counter] = emap[term]
             counter_M += add
             counter_M += len(params["energy_edge_terms"])
-        if params["interface_edge"]:
-            self.A[0:len(substrate_indices), len(substrate_indices):len(vertice_arr)] = 1
-            self.A[len(substrate_indices):len(vertice_arr), 0:len(substrate_indices)] = 1
+
+        # Hydrogen Bonding Energies
+        if params["hydrogen_bonding"]:
+            hbs=pose.get_hbonds()
+            res_dict = dict()
+            for res in vertice_arr:
+                hbl = hbs.residue_hbonds(res)
+                for hb in hbl:
+                    residues = (hb.don_res(), hb.acc_res())
+                    if residues[0] > residues[1]: residues = (hb.acc_res(), hb.don_res())
+                    if residues[0] in vertice_arr and residues[1] in vertice_arr: res_dict[residues] = hb.energy()
+            for residues in res_dict:
+                for i in np.where(vertice_arr==residues[0])[0]:
+                    for j in np.where(vertice_arr==residues[1])[0]:
+                        self.A[i,j,counter_M] += self.A[i,j,counter_M] + res_dict[residues]
+                        self.A[j,i,counter_M] += self.A[j,i,counter_M] + res_dict[residues]
             counter_M += 1
 
-#####################################################################################################################
+        # Protease - Substrate Interactions Boolean
+        if params["interface_edge"]:
+            self.A[0:len(substrate_indices), len(substrate_indices):len(vertice_arr), counter_M] = 1
+            self.A[len(substrate_indices):len(vertice_arr), 0:len(substrate_indices), counter_M] = 1
+            counter_M += 1
+
+        # Covalent Bond Connection Boolean
+        if params["covalent_edge"]:
+            for i in range(len(vertice_arr) - 1):
+                if vertice_arr[i + 1] - vertice_arr[i] == 1:
+                    self.A[i, i + 1, counter_M] = 1
+                    self.A[i + 1, i, counter_M] = 1
+            counter_M += 1
 
 def index_substrate(pose):
     """Takes a pose and returns the indices of the substrate."""

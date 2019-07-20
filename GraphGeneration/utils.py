@@ -63,65 +63,63 @@ def graph_list_pickle(graph_ls, label_ls, sequence_ls, dataset_name, destination
         f.close()
 
 def pickle_many_param_dicts():
-    ls_d = []
-    ls_d.append({"amino_acids":True,
-                    "blosum": False,
-                    "sinusoidal_encoding":3,
-                    "cosine_similarity":True,
-                    "center_measure":True,
-                    "interface_boolean":True,
-                    "energy_terms":[],
-                    "energy_edge_terms":[],
-                    "distance":False,
+    energy_terms = [fa_intra_sol_xover4, fa_intra_rep, rama_prepro, omega, p_aa_pp, fa_dun, ref]
+    energy_edge_terms = [pro_close, fa_atr, fa_rep, fa_sol, fa_elec, lk_ball_wtd]
+    d = dict()
+    d["0"] = {"amino_acids":True,
+                    "distance":True}
+    d["1"] = {"amino_acids":True,
+                    "energy":True}
+    d["2"] = {"amino_acids":True,
                     "energy":True,
-                    "interface_edge":False})
-    ls_d.append({"amino_acids":True,
-                    "blosum": False,
+                    "distance":True}
+    d["3"] = {"amino_acids":True,
                     "sinusoidal_encoding":3,
                     "cosine_similarity":True,
                     "center_measure":True,
                     "interface_boolean":True,
-                    "energy_terms":[],
-                    "energy_edge_terms":[fa_rep, fa_sol, fa_elec, lk_ball_wtd, hbond_sr_bb, hbond_lr_bb, hbond_bb_sc, fa_dun],
+                    "energy_terms":energy_terms,
                     "distance":True,
-                    "energy":False,
-                    "interface_edge":False})
-    ls_d.append({"amino_acids":True,
-                    "blosum": False,
+                    "energy":True}
+    d["4"] = {"amino_acids":True,
                     "sinusoidal_encoding":3,
                     "cosine_similarity":True,
                     "center_measure":True,
                     "interface_boolean":True,
-                    "energy_terms":[],
-                    "energy_edge_terms":[fa_rep, fa_sol, fa_elec, lk_ball_wtd, hbond_sr_bb, hbond_lr_bb, hbond_bb_sc, fa_dun],
-                    "distance":False,
-                    "energy":False,
-                    "interface_edge":False})
-    ls_d.append({"amino_acids":True,
-                    "blosum": False,
+                    "energy_terms":energy_terms,
+                    "energy_edge_terms":energy_edge_terms}
+    d["5"] = {"amino_acids":True,
                     "sinusoidal_encoding":3,
                     "cosine_similarity":True,
                     "center_measure":True,
                     "interface_boolean":True,
-                    "energy_terms":[],
-                    "energy_edge_terms":[fa_rep, fa_sol, fa_elec, lk_ball_wtd, hbond_sr_bb, hbond_lr_bb, hbond_bb_sc, fa_dun],
-                    "distance":True,
-                    "energy":False,
-                    "interface_edge":False})
-    ls_d.append({"amino_acids":True,
-                    "blosum": False,
+                    "energy_terms":energy_terms,
+                    "energy_edge_terms":energy_edge_terms,
+                    "interface_edge":True,
+                    "hydrogen_bonding":True,
+                    "covalent_edge":True}
+    d["6"] = {"amino_acids":True,
                     "sinusoidal_encoding":3,
                     "cosine_similarity":True,
                     "center_measure":True,
                     "interface_boolean":True,
-                    "energy_terms":[],
-                    "energy_edge_terms":[],
+                    "energy_terms":energy_terms,
+                    "energy_edge_terms":energy_edge_terms,
+                    "interface_edge":True,
+                    "hydrogen_bonding":True,
+                    "covalent_edge":True}
+    d["7"] = {"amino_acids":True,
+                    "sinusoidal_encoding":3,
+                    "cosine_similarity":True,
+                    "center_measure":True,
+                    "interface_boolean":True,
+                    "energy_terms":energy_terms,
+                    "energy_edge_terms":energy_edge_terms,
                     "distance":True,
                     "energy":True,
-                    "interface_edge":False})
+                    "interface_edge":True,
+                    "hydrogen_bonding":True,
+                    "covalent_edge":True}
 
-    ls_datasets = ["all_onehot_energy", "all_onehot_distance",
-        "all_onehot_energy_terms", "all_onehot_energy_terms_distance", "all_onehot_energy_distance"]
-
-    for i in range(len(ls_datasets)):
-        pkl.dump(ls_d[i], open("./Dicts/{}".format(ls_datasets[i]), "wb"))
+    for key in d:
+        pkl.dump(d[key], open("./Dicts/{}".format(key), "wb"))
