@@ -486,3 +486,37 @@ def index_interface_10ang_original(pose,
     interface_indices = list(interface_indices)
     interface_indices.sort()
     return interface_indices
+
+def index_interface_8ang_original(pose,
+                                    active_site,
+                                    substrate_indices,
+                                    k,
+                                    protease = "HCV"):
+    """This function takes a pose and a number of interface/substrate to consider and returns interface indices. The
+    value k and pose are not used..."""
+    # load default pose as original
+    crystal_struct = "./GraphGeneration/CrystalStructures/{}.pdb".format("HCV")#protease)#must be changed back
+    pose = pose_from_pdb(crystal_struct)
+    
+    # get protease indices, done by selecting all indices that are not the substrate
+    prot_indices = []
+    for i in range(1, 1 + len(pose.sequence())):
+        if i not in substrate_indices:
+            prot_indices.append(i)
+    
+    # get min distances from all protease residues to substrate (using CA)
+    interface_indices = set()
+    for i in range(len(prot_indices)):
+        ca_protease_xyz = pose.residue(prot_indices[i]).xyz("CA")
+        # list of distances for this prot indice
+        ls = np.zeros(len(active_site))
+        for j in range(len(active_site)):
+            if active_site[j] != None:
+                ca_substrate_xyz = pose.residue(substrate_indices[j]).xyz("CA")
+                vec = to_numpy(ca_protease_xyz - ca_substrate_xyz)
+                dist = (sum([x*x for x in vec]))**.5
+                if dist <= 8:
+                    interface_indices.add(prot_indices[i])
+    interface_indices = list(interface_indices)
+    interface_indices.sort()
+    return interface_indices

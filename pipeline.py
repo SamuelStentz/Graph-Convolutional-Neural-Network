@@ -72,6 +72,8 @@ elif sel == "residue_wise":
     sel = protein_graph.index_interface_nearest_residuewise
 elif sel == "10_ang":
     sel = protein_graph.index_interface_10ang_original
+elif sel == "8_ang":
+    sel = protein_graph.index_interface_8ang_original
 else:
     raise ValueError("Invalid selector for protease interface!")
 

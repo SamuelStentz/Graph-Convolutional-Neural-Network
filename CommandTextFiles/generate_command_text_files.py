@@ -14,7 +14,7 @@ classifier = "{}.txt"
 # possible graphs
 params = [str(i) for i in range(8)]
 ratios = [0]
-selectors = ["10_ang"]
+selectors = ["8_ang"]
 
 graph_options = [params, ratios, selectors, proteins]
 
@@ -48,6 +48,7 @@ train_command_template = "python3 train.py -learning_rate {0} -epochs {1} -early
                             "-attention_dim {4} -attention_bias {5} -model {6} -max_degree {7} -connected_dimensions {8} -dataset {9} "\
                             "-save_test {10} -save_validation {11}"
 
+# preliminary models
 with open("model_generation.txt", "w") as fh:
     for graph_option in graph_options_combos:
         for model_option in model_options_combos:

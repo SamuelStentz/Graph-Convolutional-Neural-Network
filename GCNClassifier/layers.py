@@ -208,10 +208,8 @@ class SelfAttention(Layer):
         self.hidden_units = hidden_units
         self.A = None
         with tf.variable_scope(self.name + '_vars'):
-            # AttentionxHidden
-            self.vars['Ws'] = glorot([attention_dim, self.hidden_units])
-            # BiasxAttention
-            self.vars['W2'] = glorot([bias_dim, attention_dim])
+            self.vars['Ws'] = glorot([attention_dim, self.hidden_units])#tf.Variable(tf.random_uniform([attention_dim, self.hidden_units])) # AttentionxHidden
+            self.vars['W2'] = glorot([bias_dim, attention_dim])#tf.Variable(tf.random_uniform([bias_dim, attention_dim])) # BiasxAttention
 
     def _call(self, inputs):
         # dropout

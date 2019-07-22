@@ -32,9 +32,9 @@ flags.DEFINE_integer('early_stopping', 10, 'Tolerance for early stopping (# of e
 flags.DEFINE_integer('max_degree', 3, 'Maximum Chebyshev polynomial degree.')
 flags.DEFINE_string('save_validation', "False", "If you should save validation accuracy")
 flags.DEFINE_string('save_test', "False", "If this is a optimized run! Use all data and save outputs")
-flags.DEFINE_integer('k-fold', -1, "If this run is a k-folded run! If given save_val, save_test, etc are all ignored")# not implemented
+flags.DEFINE_integer('k-fold', -1, "If this run is a k-folded run! If given save_val, save_test, etc are all ignored")
 flags.DEFINE_string('test_dataset', 'testset', "If we are testing with a unique test_set")
-flags.DEFINE_string('balanced_training', 'False', "use a weighted classwise loss to prevent favoring larger class")# not implemented
+flags.DEFINE_string('balanced_training', 'False', "use a weighted classwise loss to prevent favoring larger class")
 
 
 # Load data
@@ -74,17 +74,13 @@ else:
 
 # save validation
 save_validation = FLAGS.save_validation
-if save_validation == "True":
-    save_validation = True
-else:
-    save_validation = False
+if save_validation == "True": save_validation = True
+else: save_validation = False
 
 # see if we are saving the output by considering testing set
 save_test = FLAGS.save_test
-if save_test == "True":
-    save_test = True
-else:
-    save_test = False
+if save_test == "True": save_test = True
+else: save_test = False
 
 if save_test:
     epoch_df = pd.DataFrame(np.zeros(shape = (FLAGS.epochs, 5)))
@@ -142,8 +138,8 @@ def evaluate(features, support, labels, mask, placeholders, model):
     features = features[mask,:,:]
     support = support[mask,:,:,:]
     labels = labels[mask, :]
-    feed_dict_val = construct_feed_dict(features, support, labels, placeholders)
-    outs_val = sess.run([model.loss, model.accuracy], feed_dict=feed_dict_val)
+    feed_dict = construct_feed_dict(features, support, labels, placeholders)
+    outs_val = sess.run([model.loss, model.accuracy], feed_dict=feed_dict)
     return outs_val[0], outs_val[1], (time.time() - t_test)
 
 # Init variables
@@ -234,13 +230,30 @@ if save_test:
     # add true labels
     labels_df.iloc[:, 1] = [np.where(labels_test[i])[0] for i in range((sum(test_mask)))]
     
-    # get logits in final layer
-    feed_dict_val = construct_feed_dict(features_test, support_test, labels_test, placeholders)
-    logits, predictions = sess.run([model.logits, model.predictions], feed_dict=feed_dict_val)
+    # get logits in final layer and attention layer values
+    feed_dict = construct_feed_dict(features_test, support_test, labels_test, placeholders)
+    logits, predictions, attentions = sess.run([model.logits, model.predictions, model.attentions], feed_dict=feed_dict)
     labels_df.iloc[:, 3:5] = logits
     
     # get predictions
     labels_df.iloc[:, 2] = predictions
+    
+    # add attentions
+    att = np.zeros(shape = (attentions.shape[0] * attentions.shape[1], attentions.shape[2]))
+    for bat in range(attentions.shape[0]):
+        att[bat*attentions.shape[1]:(bat + 1)*attentions.shape[1],:] = attentions[bat,:,:]
+    attention_df = pd.DataFrame(att)
+    seq_test = [sequences[i] for i in range(len(test_mask)) if test_mask[i]]
+    bias_vals = []
+    batch_vals = []
+    s = []
+    for i in range(attentions.shape[0]): bias_vals += list(range(attentions.shape[1]))
+    for i in range(attentions.shape[0]): batch_vals += [i for j in range(attentions.shape[1])]
+    for i in range(attentions.shape[0]): s += [seq_test[i] for j in range(attentions.shape[1])]
+    attention_df["Bias"] = bias_vals
+    attention_df["Batch"] = batch_vals
+    attention_df["Sequence"] = s
+    attention_df["N"] = attentions.shape[2]
     
     # change indices for labels to their names
     labels_df.iloc[:,1] = labels_df.iloc[:,1].map(lambda x: labelorder[x])
@@ -249,3 +262,4 @@ if save_test:
     # write to file
     epoch_df.to_csv("../Results/{}.{}.epoch.csv".format(model_desc, FLAGS.dataset), index = False)
     labels_df.to_csv("../Results/{}.{}.predictions.csv".format(model_desc, FLAGS.dataset), index = False)
+    attention_df.to_csv("../Results/{}.{}.attentions.csv".format(model_desc, FLAGS.dataset), index = False)

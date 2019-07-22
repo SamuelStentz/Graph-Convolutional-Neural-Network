@@ -23,11 +23,12 @@ class Model(object):
 
         self.layers = []
         self.activations = []
-
+        
         self.inputs = None
         self.outputs = None
         self.logits = None
         self.predictions = None
+        self.attentions = None
         
         self.loss = 0
         self.accuracy = 0
@@ -93,6 +94,7 @@ class GCN(Model):
         self.placeholders = placeholders
         self.number_nodes = placeholders['features'].get_shape().as_list()[1]
         self.optimizer = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate)
+        self.attention_layer = None
         self.build()
 
     def _loss(self):
@@ -125,6 +127,7 @@ class GCN(Model):
         labels = self.placeholders['labels']
         logits = self.outputs
         self.logits = logits
+        self.attentions = self.attention_layer.A
         labels=tf.argmax(labels, 1) # labels
         predictions=tf.argmax(logits, 1) # prediction as one hot
         self.predictions = predictions
@@ -170,6 +173,7 @@ class GCN(Model):
                                          placeholders=self.placeholders,
                                          dropout=True,
                                          logging=self.logging))
+        self.attention_layer = self.layers[-1]
         
         # Fully Connected Layers
         fully_connected_dimensions.append(self.output_dim)
