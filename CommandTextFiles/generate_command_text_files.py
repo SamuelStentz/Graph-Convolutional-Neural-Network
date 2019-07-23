@@ -14,7 +14,7 @@ classifier = "{}.txt"
 # possible graphs
 params = [str(i) for i in range(8)]
 ratios = [0]
-selectors = ["8_ang"]
+selectors = ["k_nearest"]
 
 graph_options = [params, ratios, selectors, proteins]
 
