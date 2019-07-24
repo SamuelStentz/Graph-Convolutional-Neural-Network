@@ -1,6 +1,4 @@
 # %load train.py
-from __future__ import division
-from __future__ import print_function
 
 import time
 import tensorflow as tf
@@ -87,7 +85,7 @@ if save_test:
     labels_df = pd.DataFrame(np.zeros(shape = (sum(test_mask), 5)))
     # add validation to training set for best results
     train_mask = np.array([xi or yi for (xi, yi) in zip(train_mask, val_mask)], dtype = np.bool)
-
+    
 # see size of inputs
 print("|Training| {}, |Validation| {}, |Testing| {}".format(np.sum(train_mask), np.sum(val_mask), np.sum(test_mask)))
 
@@ -260,6 +258,10 @@ if save_test:
     labels_df.iloc[:,2] = labels_df.iloc[:,2].map(lambda x: labelorder[x])
     
     # write to file
-    epoch_df.to_csv("../Results/{}.{}.epoch.csv".format(model_desc, FLAGS.dataset), index = False)
-    labels_df.to_csv("../Results/{}.{}.predictions.csv".format(model_desc, FLAGS.dataset), index = False)
-    attention_df.to_csv("../Results/{}.{}.attentions.csv".format(model_desc, FLAGS.dataset), index = False)
+    if FLAGS.test_dataset != "testset":
+        datadesc = "train_" + FLAGS.dataset + "_test_" + FLAGS.test_dataset
+    else:
+        datadesc = FLAGS.dataset
+    epoch_df.to_csv("../Results/{}.{}.epoch.csv".format(model_desc, datadesc), index = False)
+    labels_df.to_csv("../Results/{}.{}.predictions.csv".format(model_desc, datadesc), index = False)
+    attention_df.to_csv("../Results/{}.{}.attentions.csv".format(model_desc, datadesc), index = False)
