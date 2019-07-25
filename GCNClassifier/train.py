@@ -34,13 +34,12 @@ flags.DEFINE_integer('k-fold', -1, "If this run is a k-folded run! If given save
 flags.DEFINE_string('test_dataset', 'testset', "If we are testing with a unique test_set")
 flags.DEFINE_string('balanced_training', 'False', "use a weighted classwise loss to prevent favoring larger class")
 
-
 # Load data
-adj_ls, features, y_arr, sequences, labelorder, train_mask, val_mask, test_mask = load_data(FLAGS.dataset)
+adj_ls, features, y_arr, sequences, labelorder, train_mask, val_mask, test_mask = parse_many_datasets(FLAGS.dataset)
 
 # Check for independent test_dataset
 if FLAGS.test_dataset != "testset":
-    adj_ls_test, features_test, y_arr_test, sequences_test, _, _, _, test_mask = load_data(FLAGS.test_dataset)
+    adj_ls_test, features_test, y_arr_test, sequences_test, _, _, _, test_mask = parse_many_datasets(FLAGS.test_dataset)
     adj_ls = np.concatenate((adj_ls, adj_ls_test), axis = 0)
     features = np.concatenate((features, features_test), axis = 0)
     y_arr = np.concatenate((y_arr, y_arr_test), axis = 0)
@@ -55,7 +54,7 @@ if FLAGS.test_dataset != "testset":
     val_mask = np.array([False for xi in test_mask], dtype = np.bool)
 
 # Save with a name defined by model params
-model_desc = "learningrate_{7}_epochs_{8}__graphconv_{0}_dropout_{1}_attdim_{2}_attbias_{3}_fc_{4}_model_{5}_maxdeg_{6}"
+model_desc = "lr_{7}_epoch_{8}__gc_{0}_do_{1}_ad_{2}_ab_{3}_fc_{4}_m_{5}_deg_{6}"
 model_desc = model_desc.format(FLAGS.graph_conv_dimensions, FLAGS.dropout, FLAGS.attention_dim,
                               FLAGS.attention_bias, FLAGS.connected_dimensions, FLAGS.model, FLAGS.max_degree,
                               FLAGS.learning_rate, FLAGS.epochs)

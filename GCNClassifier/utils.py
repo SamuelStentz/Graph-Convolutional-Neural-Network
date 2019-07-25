@@ -8,6 +8,9 @@ import scipy.sparse as sp
 import tensorflow as tf
 import os
 
+seed = 123
+np.random.seed(seed)
+
 def parse_index_file(filename):
     """Parse index file."""
     index = []
@@ -48,29 +51,20 @@ def load_data(dataset_str):
             else:
                 objects.append(pkl.load(f))
 
-    x_arr, y_arr, graph_arr, sequences, labelorder = tuple(objects)
-    
-    # this is the tensor of datapoints converted to a list of sparse matrices (BATCHxNxF)
-    features = x_arr
-    
-    # make all the adjacency lists into nx graph objects (BATCHxGRAPHS)
-    adj_ls = graph_arr
-    
-    # read in the test indices from the index file
-    test_idx_reorder = parse_index_file("Data/ind.all.test.index")
-    test_idx_range = np.sort(test_idx_reorder)
-    idx_test = test_idx_range.tolist()
+    features, y_arr, adj_ls, sequences, labelorder = tuple(objects)
     
     os.chdir(cwd)
     
-    # get training indexes and then split this group up into testing and validation
-    idx_train = [y_ind for y_ind in range(y_arr.shape[0]) if y_ind not in idx_test]
-    np.random.shuffle(idx_train)
-    cutoff = int(6*len(idx_train)/7)
-    idx_val = idx_train[cutoff:]
-    idx_train = idx_train[:cutoff]
-    idx_train, idx_val = np.sort(idx_train), np.sort(idx_val)
-    idx_test = np.array(idx_test)
+    # Split all datasets into testing, training, and validation. The split of this data is fixed for each dataset
+    # because the numpy seed is fixed, currently the breakdown is train: 60, validation: 10, test: 30
+    idx = [y_ind for y_ind in range(y_arr.shape[0])]
+    np.random.shuffle(idx)
+    cutoff_1 = int(6*len(idx)/10)
+    cutoff_2 = int(7*len(idx)/10)
+    idx_train = idx[:cutoff_1]
+    idx_val = idx[cutoff_1:cutoff_2]
+    idx_test = idx[cutoff_2:]
+    idx_train, idx_val, idx_test = np.sort(idx_train), np.sort(idx_val), np.sort(idx_test)
     
     # make logical indices (they are the size BATCH)
     train_mask = sample_mask(idx_train, y_arr.shape[0])
@@ -79,6 +73,29 @@ def load_data(dataset_str):
 
     return adj_ls, features, y_arr, sequences, labelorder, train_mask, val_mask, test_mask
 
+def parse_many_datasets(datasets):
+    """This method deals with many datasets being provided. The datasets MUST have the cardinality of node set."""
+    datasets = datasets.strip()
+    if datasets[0] != "[" and datasets[-1] != "]":
+        return load_data(datasets)
+    datasets = datasets.strip("[]")
+    datasets = datasets.replace(" ", "")
+    datasets = datasets.split(",")
+    
+    # initialize with initial or first dataset, then simply concatenate each new dataset onto existing structure
+    adj_ls, features, y_arr, sequences, labelorder, train_mask, val_mask, test_mask = load_data(datasets[0])
+    for dataset in datasets[1:]:
+        if dataset != "":
+            adj_ls_curr, features_curr, y_arr_curr, sequences_curr, _, train_curr, val_curr, test_curr = load_data(dataset)
+            adj_ls = np.concatenate((adj_ls, adj_ls_curr), axis = 0)
+            features = np.concatenate((features, features_curr), axis = 0)
+            y_arr = np.concatenate((y_arr, y_arr_curr), axis = 0)
+            train_mask = np.concatenate((train_mask, train_curr), axis = 0)
+            val_mask = np.concatenate((val_mask, val_curr), axis = 0)
+            test_mask = np.concatenate((test_mask, test_curr), axis = 0)
+            sequences = sequences + sequences_curr
+    return adj_ls, features, y_arr, sequences, labelorder, train_mask, val_mask, test_mask
+        
 
 def preprocess_features(features):
     """Row-normalize feature matrix and convert to tuple representation"""

@@ -54,14 +54,6 @@ def graph_list_pickle(graph_ls, label_ls, sequence_ls, dataset_name, destination
             "ind.{}.sequences".format(dataset_name)), "wb"))
     pkl.dump(s, open( os.path.join(destination_path,\
             "ind.{}.labelorder".format(dataset_name)), "wb"))
-    
-    # if not already generated, generate test indices
-    test_index_file = os.path.join(destination_path, "ind.all.test.index")
-    if not os.path.exists(test_index_file):
-        f = open(test_index_file, "w")
-        for el in test_index:
-            f.write(str(el) + "\n")
-        f.close()
 
 def pickle_many_param_dicts():
     energy_terms = [fa_intra_sol_xover4, fa_intra_rep, rama_prepro, omega, p_aa_pp, fa_dun, ref]
