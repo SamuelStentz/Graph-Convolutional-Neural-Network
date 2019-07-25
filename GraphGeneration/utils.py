@@ -20,6 +20,7 @@ def graph_list_pickle(graph_ls, label_ls, sequence_ls, dataset_name, destination
     for el in label_ls:
         s.add(el)
     s = list(s)
+    s.sort()
     num_classifiers = len(s)
     
     # generate feature matrices
