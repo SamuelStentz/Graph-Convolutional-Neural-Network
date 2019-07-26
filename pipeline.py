@@ -20,15 +20,14 @@ data_path = os.path.join(root, "Data")
 graph_path = os.path.join(root, "GraphGeneration")
 dict_path = os.path.join(graph_path, "Dicts")
 
-###################################################################################################################
-# this area is reserved for parameters we will want to pass in as optional flags
 
+# this area is reserved for parameters we will want to pass in as optional flags
 parser.add_argument("-db", "--database_name", help="Database name")
 parser.add_argument("-pr_path", "--protease_path", help="Path to silent pose directory for protease")
 parser.add_argument("-class", "--classification_file", help="Name of txt for sequences to use, must be in folder")
 parser.add_argument("-si", "--size_interface", help="|Interface|", type = int)
 parser.add_argument("-is", "--interface_selector", help="Way Interface Is Selected, either k_nearest or residue_wise currently")
-parser.add_argument("-unsafe", "--unsafe", help="Overwrite datasets", type = bool)
+parser.add_argument("-unsafe", "--unsafe", help="Overwrite datasets", action='store_true')
 parser.add_argument("-params", "--params", help= "parameters dict for the graphs")
 
 args = parser.parse_args()
@@ -47,8 +46,6 @@ if pr_path == None:
     pr_path = r"/scratch/ss3410/models"
 if class_file == None:
     class_file = "experimental_binary_classifications.txt"
-if unsafe == None:
-    unsafe = False
 if params == None:
     params = {"amino_acids":True,
                 "blosum": True,
@@ -84,9 +81,11 @@ else:
     
 ####################################################################################################################
 # Ensure database's name is unique!
+print("\n\n\n\n\n\n{}\n{}\n{}\n\n\n\n\n".format(data_path, unsafe, db))
+
 if not unsafe:
     future_file = os.path.join(data_path, "ind.{}.y".format(db))
-    if os.path.exists(future_file):
+    if os.path.isfile(future_file):
         raise ValueError("Non-unique database name used. Will cause data to be overwritten. \
 Manually delete old files or rename with -db mydatabase tag")
 
