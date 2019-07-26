@@ -2,7 +2,11 @@
 # By default they are run at /scratch/ss3410/GCNN. Additionally, you can specify where to put the .sh output file.
 # By default they go down on file directory ex) /scratch/ss3410/GCNN/
 
-"""python text_to_slurm.py -txt graph_generation.txt -job_name GGen -path_operation /scratch/ss3410/Graph-Convolutional-Neural-Network -path_sh /scratch/ss3410/Graph-Convolutional-Neural-Network/Commands -mem 8000 -batch 1 -time 10:00:00"""
+
+"""
+python text_to_slurm.py -txt model_generation.txt -tf -job_name M -path_operation /scratch/ss3410/Graph-Convolutional-Neural-Network/GCNClassifier -path_sh /scratch/ss3410/Graph-Convolutional-Neural-Network/Commands -mem 12000 -batch 100 -time 3-00:00:00
+python text_to_slurm.py -txt graph_generation.txt -job_name G -path_operation /scratch/ss3410/Graph-Convolutional-Neural-Network -path_sh /scratch/ss3410/Graph-Convolutional-Neural-Network/Commands -mem 8000 -batch 1 -time 10:00:00"""
+
 
 import argparse
 import os
@@ -16,6 +20,7 @@ parser.add_argument("-mem", type=str)
 parser.add_argument("-delay", type=int)
 parser.add_argument("-batch", type=int)
 parser.add_argument("-time", type=str)
+parser.add_argument("-tf", action="store_true")
 
 args = parser.parse_args()
 
@@ -27,6 +32,7 @@ delay = args.delay
 mem = args.mem
 batch = args.batch
 time = args.time
+tf = args.tf
 
 if time == None:
     time = "3-00:00:00"
@@ -69,6 +75,7 @@ cd {4}
 
 """
 
+
 lineList = [x.strip() for x in lineList]
 
 if sh == None:
@@ -84,6 +91,8 @@ while i < len(lineList) + batch:
         os.remove(command)
     f = open(command, "w")
     f.write(header_specific)
+    if tf:
+        f.write("\nmodule purge\nmodule load singularity/.2.5.1\n")
     for j in range(batch):
         if i + j < len(lineList):
             line = lineList[i+j]
