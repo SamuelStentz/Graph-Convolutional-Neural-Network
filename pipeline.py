@@ -15,7 +15,7 @@ init()
 sfxn = get_fa_scorefxn() # this apparently takes 1.5 secs to load... good to preset
 parser = argparse.ArgumentParser()
 root = os.getcwd()
-classifier_path = os.path.join(root, "ClassifierData")
+classifier_path = os.path.join(root, "Classifications")
 data_path = os.path.join(root, "Data")
 graph_path = os.path.join(root, "GraphGeneration")
 dict_path = os.path.join(graph_path, "Dicts")

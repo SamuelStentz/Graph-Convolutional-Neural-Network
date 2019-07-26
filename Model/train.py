@@ -51,7 +51,7 @@ if FLAGS.test_dataset != "testset":
     val_mask = np.array([False for xi in test_mask], dtype = np.bool)
 
 # Save with a name defined by model params
-model_desc = "lr_{7}_epoch_{8}__gc_{0}_do_{1}_ad_{2}_ab_{3}_fc_{4}_m_{5}_deg_{6}"
+model_desc = "lr_{7}_epoch_{8}_gc_{0}_do_{1}_ad_{2}_ab_{3}_fc_{4}_m_{5}_deg_{6}"
 model_desc = model_desc.format(FLAGS.graph_conv_dimensions, FLAGS.dropout, FLAGS.attention_dim,
                               FLAGS.attention_bias, FLAGS.connected_dimensions, FLAGS.model, FLAGS.max_degree,
                               FLAGS.learning_rate, FLAGS.epochs)
