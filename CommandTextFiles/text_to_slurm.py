@@ -93,5 +93,6 @@ while i < len(lineList) + batch:
     i += batch
     counter += 1
 
-
-
+with open(r"{}/{}.sh".format(sh, job_name), "w") as fh:
+    fh.write(header.format(job_name, "all", 1, 4000, ".", "3:00:00"))
+    fh.write("\nfor i in {0.." + str(counter) + "..1}; do sbatch " + job_name + "_$i.sh; done\n")
