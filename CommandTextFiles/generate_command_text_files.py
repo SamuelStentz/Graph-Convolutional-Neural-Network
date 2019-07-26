@@ -27,7 +27,7 @@ with open("graph_generation.txt", "w") as fh:
         
 # possible parameters for model
 learning_rate = [.005, .01]
-epochs = [400, 500]
+epochs = [400, 600]
 graph_conv = [20, 10]
 num_conv = [1, 2, 3]
 connected = [20]
@@ -35,7 +35,7 @@ num_connected = [0, 1, 2]
 dropout = [0,.2]
 attention_dim = [10]
 attention_bias = [1, 2, 3]
-model = ["gcn_cheby", "gcn"]
+model = ["gcn_cheby"]
 max_degree = [3]
 accuracy_test = False
 accuracy_validation = True
@@ -58,9 +58,9 @@ with open("model_generation.txt", "w") as fh:
             # name of the graph from first slurm batch command
             p = "["
             for pr in proteins:
-                p+=pr + ","
+                p+="protease_{3}_selector_{2}_ratio_{1}_params_{0},".format(graph_option[0], graph_option[1], graph_option[2], pr)
             p += "]"
-            graph_name = "protease_{3}_selector_{2}_ratio_{1}_params_{0}".format(graph_option[0], graph_option[1], graph_option[2], p)
+            graph_name = p
             
             gcd = "["
             for x in range(model_option[3]): gcd += str(model_option[2])+","
