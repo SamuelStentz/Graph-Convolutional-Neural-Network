@@ -30,7 +30,7 @@ flags.DEFINE_integer('early_stopping', 10, 'Tolerance for early stopping (# of e
 flags.DEFINE_integer('max_degree', 3, 'Maximum Chebyshev polynomial degree.')
 flags.DEFINE_string('save_validation', "False", "If you should save validation accuracy")
 flags.DEFINE_string('save_test', "False", "If this is a optimized run! Use all data and save outputs")
-flags.DEFINE_integer('k-fold', -1, "If this run is a k-folded run! If given save_val, save_test, etc are all ignored")
+flags.DEFINE_integer('k-fold', -1, "If this run is a k-folded run! If given save_val, save_test, etc are all ignored")# not implemented
 flags.DEFINE_string('test_dataset', 'testset', "If we are testing with a unique test_set")
 flags.DEFINE_string('balanced_training', 'False', "use a weighted classwise loss to prevent favoring larger class")
 
@@ -44,11 +44,9 @@ if FLAGS.test_dataset != "testset":
     features = np.concatenate((features, features_test), axis = 0)
     y_arr = np.concatenate((y_arr, y_arr_test), axis = 0)
     sequences = sequences + sequences_test
-    
     # make all the indices true and false, then concatenate and invert for test and train
     test_mask[0:len(test_mask)] = True
     train_mask[0:len(train_mask)] = False
-
     test_mask = np.concatenate((train_mask, test_mask))
     train_mask = np.array([not xi for xi in test_mask], dtype = np.bool)
     val_mask = np.array([False for xi in test_mask], dtype = np.bool)

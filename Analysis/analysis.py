@@ -22,7 +22,7 @@ def plot_auc(path_csv, title = 'Receiver Operating Characteristic (AUC)'):
 	logits = []
 	for (n,p) in zip(df["Negative Class Logit"], df["Positive Class Logit"]):
 		logits.append(n - p)
-	to_bool = lambda x: int(x == "UNCLEAVED")
+	to_bool = lambda x: int(x == "CLEAVED")
 	labels = [to_bool(x) for x in df["Label"]]
 
 	fpr, tpr, _ = roc_curve(labels, logits)

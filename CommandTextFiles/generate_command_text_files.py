@@ -14,7 +14,7 @@ classifier = "{}.txt"
 # possible graphs
 params = [str(i) for i in range(8)]
 ratios = [0]
-selectors = ["k_nearest"]
+selectors = ["k_nearest", "8_ang", "10_ang"]
 
 graph_options = [params, ratios, selectors, proteins]
 
@@ -27,7 +27,7 @@ with open("graph_generation.txt", "w") as fh:
         
 # possible parameters for model
 learning_rate = [.005, .01]
-epochs = [200, 300, 400, 500]
+epochs = [400, 500]
 graph_conv = [20, 10]
 num_conv = [1, 2, 3]
 connected = [20]
@@ -48,12 +48,19 @@ train_command_template = "python3 train.py -learning_rate {0} -epochs {1} -early
                             "-attention_dim {4} -attention_bias {5} -model {6} -max_degree {7} -connected_dimensions {8} -dataset {9} "\
                             "-save_test {10} -save_validation {11}"
 
+graph_options = [params, ratios, selectors]
+graph_options_combos = list(itertools.product(*graph_options))
+
 # preliminary models
 with open("model_generation.txt", "w") as fh:
     for graph_option in graph_options_combos:
         for model_option in model_options_combos:
             # name of the graph from first slurm batch command
-            graph_name = "protease_{3}_selector_{2}_ratio_{1}_params_{0}".format(graph_option[0], graph_option[1], graph_option[2], graph_option[3])
+            p = "["
+            for pr in proteins:
+                p+=pr + ","
+            p += "]"
+            graph_name = "protease_{3}_selector_{2}_ratio_{1}_params_{0}".format(graph_option[0], graph_option[1], graph_option[2], p)
             
             gcd = "["
             for x in range(model_option[3]): gcd += str(model_option[2])+","
@@ -66,6 +73,4 @@ with open("model_generation.txt", "w") as fh:
                                                          model_option[7], model_option[8], model_option[9],
                                                          model_option[10], cd, graph_name,
                                                          accuracy_test, accuracy_validation)
-            if graph_option[3] is "HCV":
-                #print(train_command)
-                fh.write(train_command + "\n")
+            fh.write(train_command + "\n")

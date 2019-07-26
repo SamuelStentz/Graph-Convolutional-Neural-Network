@@ -52,7 +52,7 @@ def load_data(dataset_str):
                 objects.append(pkl.load(f))
 
     features, y_arr, adj_ls, sequences, labelorder = tuple(objects)
-    
+    print("Dataset {} has labelorder {}".format(dataset_str, labelorder))
     os.chdir(cwd)
     
     # Split all datasets into testing, training, and validation. The split of this data is fixed for each dataset
@@ -72,6 +72,7 @@ def load_data(dataset_str):
     test_mask = sample_mask(idx_test, y_arr.shape[0])
 
     return adj_ls, features, y_arr, sequences, labelorder, train_mask, val_mask, test_mask
+
 
 def parse_many_datasets(datasets):
     """This method deals with many datasets being provided. The datasets MUST have the cardinality of node set."""
