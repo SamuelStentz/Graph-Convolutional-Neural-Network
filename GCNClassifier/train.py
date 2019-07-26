@@ -30,7 +30,6 @@ flags.DEFINE_integer('early_stopping', 10, 'Tolerance for early stopping (# of e
 flags.DEFINE_integer('max_degree', 3, 'Maximum Chebyshev polynomial degree.')
 flags.DEFINE_string('save_validation', "False", "If you should save validation accuracy")
 flags.DEFINE_string('save_test', "False", "If this is a optimized run! Use all data and save outputs")
-flags.DEFINE_integer('k-fold', -1, "If this run is a k-folded run! If given save_val, save_test, etc are all ignored")# not implemented
 flags.DEFINE_string('test_dataset', 'testset', "If we are testing with a unique test_set")
 flags.DEFINE_string('balanced_training', 'False', "use a weighted classwise loss to prevent favoring larger class")
 
@@ -201,12 +200,22 @@ print("Test set results:", "cost=", "{:.5f}".format(test_cost),
 # save a text file whose name is the model_desc, graph_desc (from dataset), and has this info within it  
 if save_validation:
     root = os.getcwd()
-    optimization = os.path.join(root, "Optimization")
-    validation_accuracy = acc
-    filename = "{0:.5f}.{1}.{2}.outcome.txt".format(validation_accuracy, model_desc, FLAGS.dataset)
-    filename = os.path.join(optimization, filename)
-    with open(filename, "w") as fh:
-        fh.write("{}\n{}\n{}".format(validation_accuracy, model_desc, FLAGS.dataset))
+    os.chdir('..')
+    results = os.path.join(os.getcwd(), "Results")
+    os.chdir(root)
+    txt = os.path.join(results, "validation_results.txt")
+    if not os.path.exists(txt):
+        with open(txt, "w+") as fh:
+            fh.write("Dataset\tTest Dataset\tValidation Accuracy\tEpochs\tModel\tMax Degree\tLearning Rate\tDropout\t")
+            fh.write("Attention Dimension\tAttention Bias\tGraph Convolution Dimensions\tFully Connected Dimensions\t")
+            fh.write("Balanced Training\tWeight Decay\tEarly Stopping\n")
+    vals = [FLAGS.dataset, FLAGS.test_dataset, acc, FLAGS.epochs, FLAGS.model, FLAGS.max_degree, FLAGS.learning_rate, FLAGS.dropout,
+            FLAGS.attention_dim, FLAGS.attention_bias, FLAGS.graph_conv_dimensions, FLAGS.connected_dimensions,
+            FLAGS.balanced_training, FLAGS.weight_decay, FLAGS.early_stopping]
+    with open(txt, "a") as fh:
+        string = ""
+        for val in vals: string += str(val) + "\t"
+        fh.write(string + "\n")
     
 # Saving results to a file
 if save_test:

@@ -52,7 +52,6 @@ def load_data(dataset_str):
                 objects.append(pkl.load(f))
 
     features, y_arr, adj_ls, sequences, labelorder = tuple(objects)
-    print("Dataset {} has labelorder {}".format(dataset_str, labelorder))
     os.chdir(cwd)
     
     # Split all datasets into testing, training, and validation. The split of this data is fixed for each dataset
