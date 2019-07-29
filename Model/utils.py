@@ -18,6 +18,7 @@ def parse_index_file(filename):
         index.append(int(line.strip()))
     return index
 
+
 def sample_mask(idx, l):
     """Create mask."""
     mask = np.zeros(l)
@@ -125,7 +126,6 @@ def preprocess_adj(adj):
     """Preprocessing of adjacency matrix for simple GCN model and conversion to tuple representation."""
     adj_normalized = normalize_adj(adj + np.identity(adj.shape[0]))
     return adj_normalized
-
 
 
 def construct_feed_dict(features, support, labels, placeholders):

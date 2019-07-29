@@ -7,6 +7,7 @@ from utils import *
 from models import GCN
 import pandas as pd
 import os
+import random
 
 # Set random seed
 seed = 123
@@ -46,17 +47,25 @@ if FLAGS.test_dataset != "testset":
     # make all the indices true and false, then concatenate and invert for test and train
     test_mask[0:len(test_mask)] = True
     train_mask[0:len(train_mask)] = False
+    # test is now indexes of testset
     test_mask = np.concatenate((train_mask, test_mask))
+    # make train test split
     train_mask = np.array([not xi for xi in test_mask], dtype = np.bool)
-    val_mask = np.array([False for xi in test_mask], dtype = np.bool)
+    idx = [i for i in range(sum(train_mask))]
+    np.random.shuffle(idx)
+    cutoff = int(6*len(idx)/7)
+    val_ind = idx[cutoff:]
+    train_ind = idx[:cutoff]
+    val_mask = np.array([xi in val_ind for xi in range(train_mask.shape[0])], dtype = np.bool)
+    train_mask = np.array([xi in train_ind for xi in range(train_mask.shape[0])], dtype = np.bool)
 
-# Save with a name defined by model params
-model_desc = "lr_{7}_epoch_{8}_gc_{0}_do_{1}_ad_{2}_ab_{3}_fc_{4}_m_{5}_deg_{6}"
+# Save Name Defined by Model Params
+model_desc = "lr_{7}_epoch_{8}_stop_{9}_gc_{0}_do_{1}_ad_{2}_ab_{3}_fc_{4}_m_{5}_deg_{6}"
 model_desc = model_desc.format(FLAGS.graph_conv_dimensions, FLAGS.dropout, FLAGS.attention_dim,
                               FLAGS.attention_bias, FLAGS.connected_dimensions, FLAGS.model, FLAGS.max_degree,
-                              FLAGS.learning_rate, FLAGS.epochs)
+                              FLAGS.learning_rate, FLAGS.epochs, FLAGS.early_stopping)
 
-# determine num_supports and make model function
+# Determine Number of Supports and Assign Model Function
 if FLAGS.model == 'gcn':
     num_supports = 1
     model_func = GCN
@@ -66,23 +75,22 @@ elif FLAGS.model == 'gcn_cheby':
 else:
     raise ValueError('Invalid argument for model: ' + str(FLAGS.model))
 
-# save validation
+# Validating
 save_validation = FLAGS.save_validation
 if save_validation == "True": save_validation = True
 else: save_validation = False
 
-# see if we are saving the output by considering testing set
+# Testing
 save_test = FLAGS.save_test
 if save_test == "True": save_test = True
 else: save_test = False
 
+# Make Dataframes
 if save_test:
     epoch_df = pd.DataFrame(np.zeros(shape = (FLAGS.epochs, 5)))
     labels_df = pd.DataFrame(np.zeros(shape = (sum(test_mask), 5)))
-    # add validation to training set for best results
-    train_mask = np.array([xi or yi for (xi, yi) in zip(train_mask, val_mask)], dtype = np.bool)
     
-# see size of inputs
+# Size of Different Sets
 print("|Training| {}, |Validation| {}, |Testing| {}".format(np.sum(train_mask), np.sum(val_mask), np.sum(test_mask)))
 
 # initial time
@@ -120,12 +128,6 @@ placeholders = {
     'dropout': tf.placeholder_with_default(0., shape=()),
 }
 
-# Create model
-model = model_func(placeholders, input_dim=features.shape[2], logging=True)
-
-# Initialize session
-sess = tf.Session()
-
 # Define model evaluation function
 def evaluate(features, support, labels, mask, placeholders, model):
     t_test = time.time()
@@ -136,68 +138,125 @@ def evaluate(features, support, labels, mask, placeholders, model):
     outs_val = sess.run([model.loss, model.accuracy], feed_dict=feed_dict)
     return outs_val[0], outs_val[1], (time.time() - t_test)
 
-# Init variables
-sess.run(tf.global_variables_initializer())
-sess.run(model.running_vars_initializer)
-
-# Train model
-t = time.time()
-cost_ls = []
-for epoch in range(FLAGS.epochs):
-    t_epoch = time.time()
-    
-    # instantiate all inputs
-    features_train = features[train_mask,:,:]
-    support = support_tensor[train_mask,:,:,:]
-    y_train = y_arr[train_mask, :]
-
-    # Construct feed dictionary
-    feed_dict = construct_feed_dict(features_train, support, y_train, placeholders)
-    feed_dict.update({placeholders['dropout']: FLAGS.dropout})
-
-    # Reset the counters
-    sess.run(model.running_vars_initializer)
-    
-    # Training step
-    outs = sess.run([model.opt_op, model.loss, model.accuracy], feed_dict=feed_dict)
-
-    # Reset the counters
-    sess.run(model.running_vars_initializer)
-    
-    # Validation
-    if save_validation:
+def optimize():
+    # Train model
+    print("\n\nOptimization of Stopping Conditions: \n")
+    t = time.time()
+    cost_ls = []
+    last_improvement = 0
+    best_accuracy = 0
+    for epoch in range(FLAGS.epochs):
+        t_epoch = time.time()
+        # instantiate all inputs
+        features_train = features[train_mask,:,:]
+        support = support_tensor[train_mask,:,:,:]
+        y_train = y_arr[train_mask, :]
+        # Construct feed dictionary
+        feed_dict = construct_feed_dict(features_train, support, y_train, placeholders)
+        feed_dict.update({placeholders['dropout']: FLAGS.dropout})
+        # Reset the counters
+        sess.run(model.running_vars_initializer)
+        # Training step
+        outs = sess.run([model.opt_op, model.loss, model.accuracy], feed_dict=feed_dict)
+        # Reset the counters
+        sess.run(model.running_vars_initializer)
+        # Validation evaluation
         cost, acc, duration = evaluate(features, support_tensor, y_arr, val_mask, placeholders, model)
         cost_ls.append(cost)
-    
-    # Training
-    if save_test:
+        # Save the model IF validation is sufficiently accurate
+        if acc > best_accuracy:
+            best_accuracy = acc
+            last_improvement = epoch
+            saver.save(sess=sess, save_path=save_path_val)
+            improved_str = '*'
+        else:
+            improved_str = ''
+        # Print results
+        if (epoch + 1) % 1 == 0:
+            print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(outs[1]),"train_acc=", "{:.5f}".format(outs[2]),
+                  "val_loss=", "{:.5f}".format(cost), "val_acc=", "{:.5f}".format(acc),"time=", "{:.5f}".format(time.time() - t), improved_str)
+            t = time.time()
+        if epoch > FLAGS.early_stopping and epoch - last_improvement > 200:
+            print("Early stopping...")
+            break
+    print("Optimization Finished! Total Time: {} sec".format(time.time() - ttot))
+    return best_accuracy, epoch
+
+def testing_results(epoch_final):
+    # Initialize session
+    print("\n\nTraining on test set: \n")
+    sess.run(tf.global_variables_initializer())
+    sess.run(model.running_vars_initializer)
+    # Combine training and validation
+    mask = np.array([x or y for (x,y) in zip(test_mask, val_mask)], dtype = np.bool)
+    # Train model
+    t = time.time()
+    cost_ls = []
+    last_improvement = 0
+    best_accuracy = 0
+    for epoch in range(FLAGS.epochs):
+        t_epoch = time.time()
+        # instantiate all inputs
+        features_train = features[mask,:,:]
+        support = support_tensor[mask,:,:,:]
+        y_train = y_arr[mask, :]
+        # Construct feed dictionary
+        feed_dict = construct_feed_dict(features_train, support, y_train, placeholders)
+        feed_dict.update({placeholders['dropout']: FLAGS.dropout})
+        # Reset the counters
+        sess.run(model.running_vars_initializer)
+        # Training step
+        outs = sess.run([model.opt_op, model.loss, model.accuracy], feed_dict=feed_dict)
+        # Reset the counters
+        sess.run(model.running_vars_initializer)
+        # Evaluate
         cost, acc, duration = evaluate(features, support_tensor, y_arr, test_mask, placeholders, model)
         cost_ls.append(cost)
         epoch_df.iloc[epoch, :] = [outs[1], outs[2], cost, acc, time.time() - t_epoch]
-    
-    # Print results
-    if (epoch + 1) % 20 == 0:
-        print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(outs[1]),
-          "train_acc=", "{:.5f}".format(outs[2]),
-          "val/test_loss=", "{:.5f}".format(cost), "val/test_acc=", "{:.5f}".format(acc),
-          "time=", "{:.5f}".format(time.time() - t))
-        t = time.time()
+        # Save the model IF training accuracy is a maximum
+        if outs[2] > best_accuracy:
+            best_accuracy = outs[2]
+            last_improvement = epoch
+            saver.save(sess=sess, save_path=save_path_test)
+            improved_str = '*'
+        else:
+            improved_str = ''
+        # Print results
+        if (epoch + 1) % 1 == 0:
+            print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(outs[1]),"train_acc=", "{:.5f}".format(outs[2]),
+                  "test_loss=", "{:.5f}".format(cost), "test_acc=", "{:.5f}".format(acc),"time=", "{:.5f}".format(time.time() - t), improved_str)
+            t = time.time()
+        # Stop training when we hit old epoch number 
+        if epoch > epoch_final and epoch - last_improvement > 200:
+            print("Early stopping...")
+            break
+    print("Optimization for Test Finished! Total Time: {} sec".format(time.time() - ttot))
+    return best_accuracy
 
-    if epoch > FLAGS.early_stopping and cost_ls[-1] > np.mean(cost_ls[max(-40, -1 * FLAGS.early_stopping):-1]):
-        print("Early stopping...")
-        break
+# Create model
+model = model_func(placeholders, input_dim=features.shape[2], logging=True)
 
-print("Optimization Finished! Total Time: {} sec".format(time.time() - ttot))
-
-# Reset the counters
+# Initialize session
+sess = tf.Session()
+sess.run(tf.global_variables_initializer())
 sess.run(model.running_vars_initializer)
 
-# Testing
-test_cost, test_acc, test_duration = evaluate(features, support_tensor, y_arr, test_mask, placeholders, model)
-print("Test set results:", "cost=", "{:.5f}".format(test_cost),
-      "accuracy=", "{:.5f}".format(test_acc), "time=", "{:.5f}".format(test_duration))
+# Make saver
+saver = tf.train.Saver()
+save_dir = 'checkpoints/'
+if not os.path.exists(save_dir):
+    os.makedirs(save_dir)
 
-# save a text file whose name is the model_desc, graph_desc (from dataset), and has this info within it  
+num = random.randint(100000,999999)
+save_path_val = os.path.join(save_dir, f'best_validation_{num}')
+save_path_val = os.path.join(os.getcwd(), save_path_val)
+save_path_test = os.path.join(save_dir, f'best_training_{num}')
+save_path_test = os.path.join(os.getcwd(), save_path_test)
+
+# Do optimization on validation set
+accuracy_validation, final_epoch = optimize()
+
+# Validation
 if save_validation:
     root = os.getcwd()
     os.chdir('..')
@@ -206,42 +265,50 @@ if save_validation:
     txt = os.path.join(results, "validation_results.txt")
     if not os.path.exists(txt):
         with open(txt, "w+") as fh:
-            fh.write("Dataset\tTest Dataset\tValidation Accuracy\tEpochs\tModel\tMax Degree\tLearning Rate\tDropout\t")
+            fh.write("Dataset\tTest Dataset\tValidation Accuracy\tMax Epochs\tFinal Epoch\tModel\tMax Degree\tLearning Rate\tDropout\t")
             fh.write("Attention Dimension\tAttention Bias\tGraph Convolution Dimensions\tFully Connected Dimensions\t")
             fh.write("Balanced Training\tWeight Decay\tEarly Stopping\n")
-    vals = [FLAGS.dataset, FLAGS.test_dataset, acc, FLAGS.epochs, FLAGS.model, FLAGS.max_degree, FLAGS.learning_rate, FLAGS.dropout,
-            FLAGS.attention_dim, FLAGS.attention_bias, FLAGS.graph_conv_dimensions, FLAGS.connected_dimensions,
-            FLAGS.balanced_training, FLAGS.weight_decay, FLAGS.early_stopping]
+    vals = [FLAGS.dataset, FLAGS.test_dataset, accuracy_validation, FLAGS.epochs,final_epoch, FLAGS.model, FLAGS.max_degree,
+            FLAGS.learning_rate, FLAGS.dropout, FLAGS.attention_dim, FLAGS.attention_bias, FLAGS.graph_conv_dimensions,
+            FLAGS.connected_dimensions, FLAGS.balanced_training, FLAGS.weight_decay, FLAGS.early_stopping]
     with open(txt, "a") as fh:
         string = ""
         for val in vals: string += str(val) + "\t"
         fh.write(string + "\n")
-    
-# Saving results to a file
+
+# Test
 if save_test:
-    # add column information
+    # Train on validation and train set
+    accuracy_train = testing_results(final_epoch)
+    # Choose which model to use
+    if accuracy_validation > accuracy_train:
+        path = save_path_val
+    else:
+        path = save_path_test
+    # Load model
+    sess.run(tf.global_variables_initializer())
+    saver.restore(sess=sess, save_path=path)
+    # Evaluate
+    test_cost, test_acc, test_duration = evaluate(features, support_tensor, y_arr, test_mask, placeholders, model)
+    print("Test set results:", "cost=", "{:.5f}".format(test_cost),
+      "accuracy=", "{:.5f}".format(test_acc), "time=", "{:.5f}".format(test_duration))
+    # Saving results to a file
     epoch_df.columns = ["train_loss", "train_acc", "test_loss", "test_acc", "time"]
     labels_df.columns = ["Sequence", "Label", "Prediction", "Negative Class Logit", "Positive Class Logit"]
-    
     # get test values
     features_test = features[test_mask,:,:]
     support_test = support_tensor[test_mask,:,:,:]
     labels_test = y_arr[test_mask, :]
-    
     # add sequences
     labels_df.iloc[:, 0] = [sequences[i] for i in range(len(test_mask)) if test_mask[i]]
-    
     # add true labels
     labels_df.iloc[:, 1] = [np.where(labels_test[i])[0] for i in range((sum(test_mask)))]
-    
     # get logits in final layer and attention layer values
     feed_dict = construct_feed_dict(features_test, support_test, labels_test, placeholders)
     logits, predictions, attentions = sess.run([model.logits, model.predictions, model.attentions], feed_dict=feed_dict)
     labels_df.iloc[:, 3:5] = logits
-    
     # get predictions
     labels_df.iloc[:, 2] = predictions
-    
     # add attentions
     att = np.zeros(shape = (attentions.shape[0] * attentions.shape[1], attentions.shape[2]))
     for bat in range(attentions.shape[0]):
@@ -258,11 +325,9 @@ if save_test:
     attention_df["Batch"] = batch_vals
     attention_df["Sequence"] = s
     attention_df["N"] = attentions.shape[2]
-    
     # change indices for labels to their names
     labels_df.iloc[:,1] = labels_df.iloc[:,1].map(lambda x: labelorder[x])
     labels_df.iloc[:,2] = labels_df.iloc[:,2].map(lambda x: labelorder[x])
-    
     # write to file
     if FLAGS.test_dataset != "testset":
         datadesc = "train_" + FLAGS.dataset + "_test_" + FLAGS.test_dataset
@@ -271,3 +336,7 @@ if save_test:
     epoch_df.to_csv("../Results/{}.{}.epoch.csv".format(model_desc, datadesc), index = False)
     labels_df.to_csv("../Results/{}.{}.predictions.csv".format(model_desc, datadesc), index = False)
     attention_df.to_csv("../Results/{}.{}.attentions.csv".format(model_desc, datadesc), index = False)
+
+for file in os.listdir(save_dir):
+    if str(num) in file:
+        os.remove(os.path.join(save_dir, file))
