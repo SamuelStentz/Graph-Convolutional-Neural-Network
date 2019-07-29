@@ -27,8 +27,8 @@ with open("graph_generation.txt", "w") as fh:
         
 # possible parameters for model
 learning_rate = [.005, .01]
-epochs = [1000]
-early_stopping = [200]
+epochs = [2000]
+early_stopping = [300]
 graph_conv = [20, 10]
 num_conv = [1, 2, 3]
 connected = [20]

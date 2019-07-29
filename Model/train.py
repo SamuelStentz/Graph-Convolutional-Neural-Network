@@ -89,14 +89,17 @@ else: save_test = False
 if save_test:
     epoch_df = pd.DataFrame(np.zeros(shape = (FLAGS.epochs, 5)))
     labels_df = pd.DataFrame(np.zeros(shape = (sum(test_mask), 5)))
-    
+
+# Print Basic Information
+print(f"Graph: {FLAGS.dataset}, {FLAGS.test_dataset}\nModel {model_desc}")
+
 # Size of Different Sets
 print("|Training| {}, |Validation| {}, |Testing| {}".format(np.sum(train_mask), np.sum(val_mask), np.sum(test_mask)))
 
-# initial time
+# Initial time
 ttot = time.time()
 
-# preload support tensor so that it isn't needlessly calculated many times
+# Preload support tensor so that it isn't needlessly calculated many times
 batch,_,N,M = adj_ls.shape
 support_tensor = np.zeros(shape=(batch,num_supports,N,N,M)) # of shape (Batch,Num_Supports,Num_Nodes,Num_Nodes,Num_Edge)
 if FLAGS.model == "gcn_cheby":
@@ -116,8 +119,11 @@ for b in range(batch):
         # add num_supportsxNxN to support tensor
         support_tensor[b,:,:,:,m] = sup
 
-# normalize all features
+# Normalize all features
 features = preprocess_features(features)
+
+# Test processed inputs
+test_inputs(features, support_tensor, y_arr)
 
 # Define placeholders
 F = features.shape[2]
@@ -125,7 +131,7 @@ placeholders = {
     'support': tf.placeholder(tf.float32, shape=(None,num_supports,N,N,M)), # ?xnum_supportsxNxNxM
     'features': tf.placeholder(tf.float32, shape=(None,N,F)), # ?xNxF
     'labels': tf.placeholder(tf.float32, shape=(None, y_arr.shape[1])), # ?,|labels|
-    'dropout': tf.placeholder_with_default(0., shape=()),
+    'dropout': tf.placeholder_with_default(0., shape=())
 }
 
 # Define model evaluation function
@@ -140,14 +146,15 @@ def evaluate(features, support, labels, mask, placeholders, model):
 
 def optimize():
     # Train model
-    print("\n\nOptimization of Stopping Conditions: \n")
+    print("\nOptimization of Stopping Conditions:")
     t = time.time()
     cost_ls = []
     last_improvement = 0
     best_accuracy = 0
+    improved_str = ''
     for epoch in range(FLAGS.epochs):
         t_epoch = time.time()
-        # instantiate all inputs
+        # Instantiate all inputs
         features_train = features[train_mask,:,:]
         support = support_tensor[train_mask,:,:,:]
         y_train = y_arr[train_mask, :]
@@ -168,14 +175,13 @@ def optimize():
             best_accuracy = acc
             last_improvement = epoch
             saver.save(sess=sess, save_path=save_path_val)
-            improved_str = '*'
-        else:
-            improved_str = ''
+            improved_str += '*'
         # Print results
-        if (epoch + 1) % 1 == 0:
+        if (epoch + 1) % 20 == 0:
             print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(outs[1]),"train_acc=", "{:.5f}".format(outs[2]),
                   "val_loss=", "{:.5f}".format(cost), "val_acc=", "{:.5f}".format(acc),"time=", "{:.5f}".format(time.time() - t), improved_str)
             t = time.time()
+            improved_str = ''
         if epoch > FLAGS.early_stopping and epoch - last_improvement > 200:
             print("Early stopping...")
             break
@@ -184,7 +190,7 @@ def optimize():
 
 def testing_results(epoch_final):
     # Initialize session
-    print("\n\nTraining on test set: \n")
+    print("\nTraining on test set:")
     sess.run(tf.global_variables_initializer())
     sess.run(model.running_vars_initializer)
     # Combine training and validation
@@ -194,9 +200,10 @@ def testing_results(epoch_final):
     cost_ls = []
     last_improvement = 0
     best_accuracy = 0
+    improved_str = ''
     for epoch in range(FLAGS.epochs):
         t_epoch = time.time()
-        # instantiate all inputs
+        # Instantiate all inputs
         features_train = features[mask,:,:]
         support = support_tensor[mask,:,:,:]
         y_train = y_arr[mask, :]
@@ -218,13 +225,12 @@ def testing_results(epoch_final):
             best_accuracy = outs[2]
             last_improvement = epoch
             saver.save(sess=sess, save_path=save_path_test)
-            improved_str = '*'
-        else:
-            improved_str = ''
+            improved_str += '*'
         # Print results
-        if (epoch + 1) % 1 == 0:
+        if (epoch + 1) % 20 == 0:
             print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(outs[1]),"train_acc=", "{:.5f}".format(outs[2]),
                   "test_loss=", "{:.5f}".format(cost), "test_acc=", "{:.5f}".format(acc),"time=", "{:.5f}".format(time.time() - t), improved_str)
+            improved_str = ''
             t = time.time()
         # Stop training when we hit old epoch number 
         if epoch > epoch_final and epoch - last_improvement > 200:

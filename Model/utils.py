@@ -11,6 +11,16 @@ import os
 seed = 123
 np.random.seed(seed)
 
+
+def test_inputs(features, support, labels):
+    if np.isnan(features).any(): raise ValueError("Features contains nan")
+    if np.isnan(support).any(): raise ValueError("Support contains nan")
+    if np.isnan(labels).any(): raise ValueError("Labels contains nan")
+    if np.isinf(features).any(): raise ValueError("Features contains inf")
+    if np.isinf(support).any(): raise ValueError("Support contains inf")
+    if np.isinf(labels).any(): raise ValueError("Labels contains inf")
+
+        
 def parse_index_file(filename):
     """Parse index file."""
     index = []

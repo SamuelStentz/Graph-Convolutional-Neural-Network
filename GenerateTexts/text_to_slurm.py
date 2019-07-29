@@ -62,7 +62,6 @@ header ="""#!/bin/bash
 #SBATCH --export=ALL
 #SBATCH --job-name {0}.{1}
 #SBATCH --partition main
-#SBATCH --requeue
 #SBATCH --ntasks {2}
 #SBATCH --cpus-per-task 1
 #SBATCH --mem {3}
