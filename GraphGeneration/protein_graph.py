@@ -461,6 +461,7 @@ def index_interface_10ang_original(pose,
     """This function takes a pose and a number of interface/substrate to consider and returns interface indices. The
     value k and pose are not used..."""
     # load default pose as original
+    crystal_struct = protease
     crystal_struct = "./GraphGeneration/CrystalStructures/{}.pdb".format("HCV")#protease)#must be changed back
     pose = pose_from_pdb(crystal_struct)
     
@@ -495,6 +496,7 @@ def index_interface_8ang_original(pose,
     """This function takes a pose and a number of interface/substrate to consider and returns interface indices. The
     value k and pose are not used..."""
     # load default pose as original
+    crystal_struct = protease
     crystal_struct = "./GraphGeneration/CrystalStructures/{}.pdb".format("HCV")#protease)#must be changed back
     pose = pose_from_pdb(crystal_struct)
     
