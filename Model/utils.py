@@ -13,9 +13,9 @@ np.random.seed(seed)
 
 
 def test_inputs(features, support, labels):
-    if np.isnan(features).any(): raise ValueError("Features contains nan")
-    if np.isnan(support).any(): raise ValueError("Support contains nan")
-    if np.isnan(labels).any(): raise ValueError("Labels contains nan")
+    if np.isnan(features).any(): np.nan_to_num(features, copy = False)
+    if np.isnan(support).any(): np.nan_to_num(support, copy = False)
+    if np.isnan(labels).any(): np.nan_to_num(labels, copy = False)
     if np.isinf(features).any(): raise ValueError("Features contains inf")
     if np.isinf(support).any(): raise ValueError("Support contains inf")
     if np.isinf(labels).any(): raise ValueError("Labels contains inf")
