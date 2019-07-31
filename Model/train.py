@@ -35,7 +35,7 @@ flags.DEFINE_string('test_dataset', 'testset', "If we are testing with a unique 
 flags.DEFINE_string('balanced_training', 'False', "use a weighted classwise loss to prevent favoring larger class")
 
 # Load data
-adj_ls, features, y_arr, sequences, labelorder, train_mask, val_mask, test_mask = parse_many_datasets(FLAGS.dataset)
+adj_ls, features, y_arr, sequences, proteases, labelorder, train_mask, val_mask, test_mask = parse_many_datasets(FLAGS.dataset)
 
 # Check for independent test_dataset
 if FLAGS.test_dataset != "testset":
@@ -88,7 +88,7 @@ else: save_test = False
 # Make Dataframes
 if save_test:
     epoch_df = pd.DataFrame(np.zeros(shape = (FLAGS.epochs, 5)))
-    labels_df = pd.DataFrame(np.zeros(shape = (sum(test_mask), 5)))
+    labels_df = pd.DataFrame(np.zeros(shape = (sum(test_mask), 6)))
 
 # Print Basic Information
 print(f"Graph: {FLAGS.dataset}, {FLAGS.test_dataset}\nModel {model_desc}")
@@ -300,13 +300,15 @@ if save_test:
       "accuracy=", "{:.5f}".format(test_acc), "time=", "{:.5f}".format(test_duration))
     # Saving results to a file
     epoch_df.columns = ["train_loss", "train_acc", "test_loss", "test_acc", "time"]
-    labels_df.columns = ["Sequence", "Label", "Prediction", "Negative Class Logit", "Positive Class Logit"]
+    labels_df.columns = ["Sequence", "Label", "Prediction", "Negative Class Logit", "Positive Class Logit", "Protease"]
     # get test values
     features_test = features[test_mask,:,:]
     support_test = support_tensor[test_mask,:,:,:]
     labels_test = y_arr[test_mask, :]
     # add sequences
     labels_df.iloc[:, 0] = [sequences[i] for i in range(len(test_mask)) if test_mask[i]]
+    # add proteases
+    labels_df.iloc[:, 5] = [proteases[i] for i in range(len(test_mask)) if test_mask[i]]
     # add true labels
     labels_df.iloc[:, 1] = [np.where(labels_test[i])[0] for i in range((sum(test_mask)))]
     # get logits in final layer and attention layer values

@@ -11,14 +11,28 @@ from sklearn.metrics import confusion_matrix
 from sklearn.utils.multiclass import unique_labels
 import sklearn
 
-def classification_report(path_csv):
-	df = pd.read_csv(path_csv)
+def predictions_df(path, protease = None):
+	df = pd.read_csv(path)
+	if protease == None:
+		return df
+	else:
+		df = df[df["Protease"].map(lambda x: x == protease)]
+		print(df)
+		return df
+
+def classification_report(path_csv, protease = None):
+	df = predictions_df(path_csv, protease = protease)
 	y_true = list(df["Label"])
 	y_pred = list(df["Prediction"])
 	print(sklearn.metrics.classification_report(y_true, y_pred, digits = 3))
+	i = 0.0
+	for yt,yp in zip(y_true, y_pred):
+		if yt == yp:
+			i += 1.0
+	return i / float(len(y_true))
 
-def plot_auc(path_csv, title = 'Receiver Operating Characteristic (AUC)'):
-	df = pd.read_csv(path_csv)
+def plot_auc(path_csv, title = 'Receiver Operating Characteristic (AUC)', protease = None):
+	df = predictions_df(path_csv, protease = protease)
 	logits = []
 	for (n,p) in zip(df["Negative Class Logit"], df["Positive Class Logit"]):
 		logits.append(n - p)
@@ -41,9 +55,10 @@ def plot_auc(path_csv, title = 'Receiver Operating Characteristic (AUC)'):
 	plt.legend(loc="lower right")
 	plt.savefig('auc.png', format='png', dpi=1000)
 	plt.show()
+	return roc_auc
 
-def plot_aupr(path_csv, title = 'Precision-Recall Curve'):
-	df = pd.read_csv(path_csv)
+def plot_aupr(path_csv, title = 'Precision-Recall Curve', protease = None):
+	df = predictions_df(path_csv, protease = protease)
 	logits = []
 	for (n,p) in zip(df["Negative Class Logit"], df["Positive Class Logit"]):
 		logits.append(n - p)
@@ -68,6 +83,7 @@ def plot_aupr(path_csv, title = 'Precision-Recall Curve'):
 	plt.legend(handles=[red_patch], loc="lower left")
 	plt.savefig('aupr.png', format='png', dpi=1000)
 	plt.show()
+	return average_precision
 
 def attention_command(path_csv, path_protease, substrate, bias):
 	init()
@@ -314,3 +330,49 @@ def plot_confusion_matrix(path_csv,
 	fig.tight_layout()
 	plt.savefig('confusion.png', format='png', dpi=1000)
 	return ax
+
+def plot_barchart(group_dict):
+	# dict goes from one bigger group (protease) to a tuple of two lists, each subgroup and magnitude in order 
+	
+	# get cmap iterator
+	cmap = plt.get_cmap("tab10")
+
+	# all groups
+	groups = [x for x in group_dict]
+	# all subgroups
+	subgroups = group_dict[groups[0]][0]
+
+	# set width
+	barWidth = 1.0 / (len(subgroups) + 1.0)
+
+	# lists of values for plotting
+	positions = []
+	magnitudes = []
+	for i, subgroup in enumerate(subgroups):
+		# add positions
+		if len(positions) == 0:
+			positions.append(np.arange(len(groups)))
+		else:
+			new_position = positions[-1]
+			new_position = np.array([x + barWidth for x in new_position])
+			positions.append(new_position)
+		magls = []
+		for group in groups:
+			magls.append(group_dict[group][1][i])
+		magnitudes.append(magls)
+	colors = cmap(np.linspace(0, 1., len(subgroups)))
+	# plot everything
+	for i, (subgroup, color) in enumerate(zip(subgroups, colors)):
+		plt.bar(positions[i], magnitudes[i], color=color, width=barWidth, edgecolor='white', label=subgroup)
+
+	# Add xticks on the middle of the group bars
+	plt.xlabel('Accuracy Results', fontweight='bold')
+	ticks = np.arange(len(groups))
+	print(float(len(subgroups)) / float(2) * barWidth)
+	ticks = np.add(ticks,float(len(subgroups) - 1) / float(2) * barWidth, casting = 'unsafe')
+	plt.xticks(ticks, groups)
+	 
+	# Create legend & Show graphic
+	plt.legend()
+	plt.show()
+

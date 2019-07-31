@@ -51,6 +51,8 @@ def load_data(dataset_str):
     :param dataset_str: Dataset name
     :return: All data input files loaded (as well the training/test data).
     """
+    protease = dataset_str.replace("protease_","")
+    protease = protease.split("_selector")[0]
     cwd = os.getcwd()
     os.chdir("..")
     names = ['x', 'y', 'graph', 'sequences', 'labelorder']
@@ -64,6 +66,7 @@ def load_data(dataset_str):
 
     features, y_arr, adj_ls, sequences, labelorder = tuple(objects)
     os.chdir(cwd)
+    proteases = [protease for x in sequences]
     
     # Split all datasets into testing, training, and validation. The split of this data is fixed for each dataset
     # because the numpy seed is fixed, currently the breakdown is train: 60, validation: 10, test: 30
@@ -81,7 +84,7 @@ def load_data(dataset_str):
     val_mask = sample_mask(idx_val, y_arr.shape[0])
     test_mask = sample_mask(idx_test, y_arr.shape[0])
 
-    return adj_ls, features, y_arr, sequences, labelorder, train_mask, val_mask, test_mask
+    return adj_ls, features, y_arr, sequences, proteases, labelorder, train_mask, val_mask, test_mask
 
 
 def parse_many_datasets(datasets):
@@ -94,10 +97,10 @@ def parse_many_datasets(datasets):
     datasets = datasets.split(",")
     
     # initialize with initial or first dataset, then simply concatenate each new dataset onto existing structure
-    adj_ls, features, y_arr, sequences, labelorder, train_mask, val_mask, test_mask = load_data(datasets[0])
+    adj_ls, features, y_arr, sequences, proteases, labelorder, train_mask, val_mask, test_mask = load_data(datasets[0])
     for dataset in datasets[1:]:
         if dataset != "":
-            adj_ls_curr, features_curr, y_arr_curr, sequences_curr, _, train_curr, val_curr, test_curr = load_data(dataset)
+            adj_ls_curr, features_curr, y_arr_curr, sequences_curr, proteases_curr, _, train_curr, val_curr, test_curr = load_data(dataset)
             adj_ls = np.concatenate((adj_ls, adj_ls_curr), axis = 0)
             features = np.concatenate((features, features_curr), axis = 0)
             y_arr = np.concatenate((y_arr, y_arr_curr), axis = 0)
@@ -105,7 +108,8 @@ def parse_many_datasets(datasets):
             val_mask = np.concatenate((val_mask, val_curr), axis = 0)
             test_mask = np.concatenate((test_mask, test_curr), axis = 0)
             sequences = sequences + sequences_curr
-    return adj_ls, features, y_arr, sequences, labelorder, train_mask, val_mask, test_mask
+            proteases = proteases + proteases_curr
+    return adj_ls, features, y_arr, sequences, proteases, labelorder, train_mask, val_mask, test_mask
         
 
 def preprocess_features(features):
