@@ -43,8 +43,6 @@ def load_data(dataset_str):
     ind.dataset_str.x => arr of the feature vectors of the training instances as numpy.ndarray object;
     ind.dataset_str.y => arr of the one-hot labels of the labeled training instances as numpy.ndarray object (|label| = number of classes); 
     ind.dataset_str.graph => arr of adjacency matrices as numpy objects
-    ind.dataset_str.test.index => index file for test values. To ensure we properly do ONE split for all possible hyperparameters
-    it simply is in Data/ind.all.test.index. This is NOT regenerated
 
     All objects above must be saved using python pickle module.
 

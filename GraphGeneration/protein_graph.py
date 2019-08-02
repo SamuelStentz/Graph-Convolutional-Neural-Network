@@ -303,18 +303,19 @@ class protein_graph:
             for i in range(len(vertice_arr)):
                 for j in range(i, len(vertice_arr)):
                     if vertice_arr[i] != None and vertice_arr[j] != None:
-                        rsd1 = pose.residue(vertice_arr[i])
-                        rsd2 = pose.residue(vertice_arr[j])
-                        weights = sfxn.weights()
-                        emap = EMapVector()
-                        sfxn.eval_ci_2b(rsd1, rsd2, pose, emap)
-                        paired_energy = emap.dot(weights)
-                        if params["energy"]:
-                            self.A[i, j, counter_M] = paired_energy
-                            self.A[j, i, counter_M] = paired_energy
-                        for counter, term in enumerate(params["energy_edge_terms"]):
-                            self.A[i, j, counter_M + add + counter] = emap[term]
-                            self.A[j, i, counter_M + add + counter] = emap[term]
+                        if i != j:
+                            rsd1 = pose.residue(vertice_arr[i])
+                            rsd2 = pose.residue(vertice_arr[j])
+                            weights = sfxn.weights()
+                            emap = EMapVector()
+                            sfxn.eval_ci_2b(rsd1, rsd2, pose, emap)
+                            paired_energy = emap.dot(weights)
+                            if params["energy"]:
+                                self.A[i, j, counter_M] = paired_energy
+                                self.A[j, i, counter_M] = paired_energy
+                            for counter, term in enumerate(params["energy_edge_terms"]):
+                                self.A[i, j, counter_M + add + counter] = emap[term]
+                                self.A[j, i, counter_M + add + counter] = emap[term]
             counter_M += add
             counter_M += len(params["energy_edge_terms"])
 

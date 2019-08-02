@@ -62,7 +62,7 @@ def plot_aupr(path_csv, title = 'Precision-Recall Curve', protease = None):
 	logits = []
 	for (n,p) in zip(df["Negative Class Logit"], df["Positive Class Logit"]):
 		logits.append(n - p)
-	to_bool = lambda x: int(x == "UNCLEAVED")
+	to_bool = lambda x: int(x.upper() == "CLEAVED")
 	labels = [to_bool(x) for x in df["Label"]]
 	precision, recall, _ = precision_recall_curve(labels, logits)
 	average_precision = average_precision_score(labels, logits)
