@@ -177,7 +177,7 @@ def optimize():
             saver.save(sess=sess, save_path=save_path_val)
             improved_str += '*'
         # Print results
-        if (epoch + 1) % 20 == 0:
+        if (epoch + 1) % 100 == 0:
             print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(outs[1]),"train_acc=", "{:.5f}".format(outs[2]),
                   "val_loss=", "{:.5f}".format(cost), "val_acc=", "{:.5f}".format(acc),"time=", "{:.5f}".format(time.time() - t), improved_str)
             t = time.time()
@@ -186,6 +186,7 @@ def optimize():
             print("Early stopping...")
             break
     print("Optimization Finished! Total Time: {} sec".format(time.time() - ttot))
+    print(f"Best Validation Accuracy on Epoch {epoch}: {best_accuracy}")
     return best_accuracy, epoch
 
 def testing_results(epoch_final):
@@ -227,7 +228,7 @@ def testing_results(epoch_final):
             saver.save(sess=sess, save_path=save_path_test)
             improved_str += '*'
         # Print results
-        if (epoch + 1) % 20 == 0:
+        if (epoch + 1) % 100 == 0:
             print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(outs[1]),"train_acc=", "{:.5f}".format(outs[2]),
                   "test_loss=", "{:.5f}".format(cost), "test_acc=", "{:.5f}".format(acc),"time=", "{:.5f}".format(time.time() - t), improved_str)
             improved_str = ''
@@ -237,6 +238,7 @@ def testing_results(epoch_final):
             print("Early stopping...")
             break
     print("Optimization for Test Finished! Total Time: {} sec".format(time.time() - ttot))
+    print(f"Best Training Accuracy: {best_accuracy}")
     return best_accuracy
 
 # Create model
@@ -289,8 +291,10 @@ if save_test:
     # Choose which model to use
     if accuracy_validation > accuracy_train:
         path = save_path_val
+        print(f"Using Validation Model w/ Val Accuracy: {accuracy_validation}")
     else:
         path = save_path_test
+        print(f"Using Testing Model w/ Accuracy: {accuracy_train}")
     # Load model
     sess.run(tf.global_variables_initializer())
     saver.restore(sess=sess, save_path=path)

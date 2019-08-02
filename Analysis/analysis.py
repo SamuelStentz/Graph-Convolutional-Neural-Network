@@ -13,6 +13,9 @@ import sklearn
 
 def predictions_df(path, protease = None):
 	df = pd.read_csv(path)
+	df["Label"] = df["Label"].map(lambda x: x.upper())
+	df["Prediction"] = df["Prediction"].map(lambda x: x.upper())
+	
 	if protease == None:
 		return df
 	else:
@@ -371,7 +374,8 @@ def plot_barchart(group_dict):
 	print(float(len(subgroups)) / float(2) * barWidth)
 	ticks = np.add(ticks,float(len(subgroups) - 1) / float(2) * barWidth, casting = 'unsafe')
 	plt.xticks(ticks, groups)
-	 
+	plt.ylim((.75,1.0))
+	
 	# Create legend & Show graphic
 	plt.legend()
 	plt.show()

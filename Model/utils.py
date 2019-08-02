@@ -11,7 +11,6 @@ import os
 seed = 123
 np.random.seed(seed)
 
-
 def test_inputs(features, support, labels):
     if np.isnan(features).any(): np.nan_to_num(features, copy = False)
     if np.isnan(support).any(): np.nan_to_num(support, copy = False)
@@ -43,6 +42,8 @@ def load_data(dataset_str):
     ind.dataset_str.x => arr of the feature vectors of the training instances as numpy.ndarray object;
     ind.dataset_str.y => arr of the one-hot labels of the labeled training instances as numpy.ndarray object (|label| = number of classes); 
     ind.dataset_str.graph => arr of adjacency matrices as numpy objects
+    ind.dataset_str.test.index => index file for test values. To ensure we properly do ONE split for all possible hyperparameters
+    it simply is in Data/ind.all.test.index. This is NOT regenerated
 
     All objects above must be saved using python pickle module.
 
@@ -154,13 +155,17 @@ def chebyshev_polynomials(adj, k):
 
     adj_normalized = normalize_adj(adj)
     laplacian = np.identity(adj.shape[0]) - adj_normalized
-    try:
-        largest_eigval, _ = eigsh(laplacian, 1, which='LM') # should still work
-    except:
-        largest_eigval, _ = eigsh(laplacian, 1, which='LM') # should still work, some wierd bug
-        
+    
+    # try to get eigenvalues 10 times
+    for i in range(10):
+        try:
+            largest_eigval, _ = eigsh(laplacian, 1, which='LM') # should still work
+            passed = True
+        except:
+            passed = False
+        if passed:
+            break
     scaled_laplacian = (2. / largest_eigval[0]) * laplacian - np.identity(adj.shape[0])
-
     t_k = list()
     t_k.append(np.identity(adj.shape[0]))
     t_k.append(scaled_laplacian)
