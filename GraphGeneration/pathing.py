@@ -78,5 +78,4 @@ def get_pose(sequence, path_to_silent_files):
         os.remove(filename)
         return ret
     except:
-        os.remove(filename)
         return "Error: Invalid Silent"
