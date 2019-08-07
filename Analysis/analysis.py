@@ -20,7 +20,6 @@ def predictions_df(path, protease = None):
 		return df
 	else:
 		df = df[df["Protease"].map(lambda x: x == protease)]
-		print(df)
 		return df
 
 def classification_report(path_csv, protease = None):
@@ -334,11 +333,11 @@ def plot_confusion_matrix(path_csv,
 	plt.savefig('confusion.png', format='png', dpi=1000)
 	return ax
 
-def plot_barchart(group_dict):
+def plot_barchart(group_dict, xtitle = "Accuracy", cmap = "Pastel1"):
 	# dict goes from one bigger group (protease) to a tuple of two lists, each subgroup and magnitude in order 
 	
 	# get cmap iterator
-	cmap = plt.get_cmap("tab10")
+	cmap = plt.get_cmap(cmap)
 
 	# all groups
 	groups = [x for x in group_dict]
@@ -369,7 +368,7 @@ def plot_barchart(group_dict):
 		plt.bar(positions[i], magnitudes[i], color=color, width=barWidth, edgecolor='white', label=subgroup)
 
 	# Add xticks on the middle of the group bars
-	plt.xlabel('Accuracy Results', fontweight='bold')
+	plt.xlabel(xtitle, fontweight='bold')
 	ticks = np.arange(len(groups))
 	print(float(len(subgroups)) / float(2) * barWidth)
 	ticks = np.add(ticks,float(len(subgroups) - 1) / float(2) * barWidth, casting = 'unsafe')
@@ -377,6 +376,6 @@ def plot_barchart(group_dict):
 	plt.ylim((.75,1.0))
 	
 	# Create legend & Show graphic
-	plt.legend()
+	plt.legend(loc='lower right')
 	plt.show()
 
