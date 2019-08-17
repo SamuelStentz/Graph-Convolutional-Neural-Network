@@ -35,6 +35,23 @@ def sample_mask(idx, l):
     return np.array(mask, dtype=np.bool)
 
 
+def get_batch_iterator(mask, batch_size):
+    # Batch size iterator, returns list of masks.
+    train_indices = [i for (i,boolean) in enumerate(mask) if boolean == True]
+    np.random.shuffle(train_indices)
+    mask_ls, i = [], 0
+    while i < len(train_indices):
+        m = np.zeros(shape=mask.shape, dtype=np.bool)
+        if i + batch_size <= len(train_indices):
+            m[train_indices[i:i+batch_size]] = True
+            mask_ls.append(m)
+        else:
+            m[train_indices[i:]] = True
+            mask_ls.append(m)
+        i += batch_size
+    return mask_ls
+
+
 def load_data(dataset_str):
     """
     Loads input data from gcn/data directory

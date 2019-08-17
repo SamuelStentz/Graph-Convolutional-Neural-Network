@@ -32,7 +32,8 @@ flags.DEFINE_integer('max_degree', 3, 'Maximum Chebyshev polynomial degree.')
 flags.DEFINE_string('save_validation', "False", "If you should save validation accuracy")
 flags.DEFINE_string('save_test', "False", "If this is a optimized run! Use all data and save outputs")
 flags.DEFINE_string('test_dataset', 'testset', "If we are testing with a unique test_set")
-flags.DEFINE_string('balanced_training', 'False', "use a weighted classwise loss to prevent favoring larger class")
+flags.DEFINE_string('balanced_training', 'False', "use a weighted classwise loss to prevent favoring larger classes")
+flags.DEFINE_integer('batch_size', 8, 'Batch training size.')
 
 # Load data
 adj_ls, features, y_arr, sequences, proteases, labelorder, train_mask, val_mask, test_mask = parse_many_datasets(FLAGS.dataset)
@@ -60,10 +61,10 @@ if FLAGS.test_dataset != "testset":
     train_mask = np.array([xi in train_ind for xi in range(train_mask.shape[0])], dtype = np.bool)
 
 # Save Name Defined by Model Params
-model_desc = "lr_{7}_epoch_{8}_stop_{9}_gc_{0}_do_{1}_ad_{2}_ab_{3}_fc_{4}_m_{5}_deg_{6}"
+model_desc = "lr_{7}_bs_{9}_epoch_{8}_stop_{9}_gc_{0}_do_{1}_ad_{2}_ab_{3}_fc_{4}_m_{5}_deg_{6}"
 model_desc = model_desc.format(FLAGS.graph_conv_dimensions, FLAGS.dropout, FLAGS.attention_dim,
                               FLAGS.attention_bias, FLAGS.connected_dimensions, FLAGS.model, FLAGS.max_degree,
-                              FLAGS.learning_rate, FLAGS.epochs, FLAGS.early_stopping)
+                              FLAGS.learning_rate, FLAGS.epochs, FLAGS.early_stopping, FLAGS.batch_size)
 
 # Determine Number of Supports and Assign Model Function
 if FLAGS.model == 'gcn':
@@ -122,7 +123,7 @@ for b in range(batch):
 # Normalize all features
 features = preprocess_features(features)
 
-# Test processed inputs
+# Test processed inputs for nan
 test_inputs(features, support_tensor, y_arr)
 
 # Define placeholders
@@ -132,7 +133,7 @@ placeholders = {
     'features': tf.placeholder(tf.float32, shape=(None,N,F)), # ?xNxF
     'labels': tf.placeholder(tf.float32, shape=(None, y_arr.shape[1])), # ?,|labels|
     'dropout': tf.placeholder_with_default(0., shape=())
-}
+}   
 
 # Define model evaluation function
 def evaluate(features, support, labels, mask, placeholders, model):
@@ -148,26 +149,25 @@ def optimize():
     # Train model
     print("\nOptimization of Stopping Conditions:")
     t = time.time()
-    cost_ls = []
-    last_improvement = 0
-    best_accuracy = 0
-    improved_str = ''
+    t, cost_ls, last_improvement, best_accuracy, improved_str = time.time(), [], 0, 0, ''
     for epoch in range(FLAGS.epochs):
         t_epoch = time.time()
-        # Instantiate all inputs
-        features_train = features[train_mask,:,:]
-        support = support_tensor[train_mask,:,:,:]
-        y_train = y_arr[train_mask, :]
-        # Construct feed dictionary
-        feed_dict = construct_feed_dict(features_train, support, y_train, placeholders)
-        feed_dict.update({placeholders['dropout']: FLAGS.dropout})
-        # Reset the counters
+        for batch_mask in get_batch_iterator(train_mask, FLAGS.batch_size):
+            # Instantiate all inputs
+            features_train = features[batch_mask,:,:]
+            support = support_tensor[batch_mask,:,:,:]
+            y_train = y_arr[batch_mask, :]
+            # Construct feed dictionary
+            feed_dict = construct_feed_dict(features_train, support, y_train, placeholders)
+            feed_dict.update({placeholders['dropout']: FLAGS.dropout})
+            # Training step
+            sess.run(model.running_vars_initializer)
+            sess.run([model.opt_op], feed_dict=feed_dict)
+        # Training Evaluation
         sess.run(model.running_vars_initializer)
-        # Training step
-        outs = sess.run([model.opt_op, model.loss, model.accuracy], feed_dict=feed_dict)
-        # Reset the counters
+        cost_t, acc_t, duration = evaluate(features, support_tensor, y_arr, train_mask, placeholders, model)
+        # Validation Evaluation
         sess.run(model.running_vars_initializer)
-        # Validation evaluation
         cost, acc, duration = evaluate(features, support_tensor, y_arr, val_mask, placeholders, model)
         cost_ls.append(cost)
         # Save the model IF validation is sufficiently accurate
@@ -177,8 +177,8 @@ def optimize():
             saver.save(sess=sess, save_path=save_path_val)
             improved_str += '*'
         # Print results
-        if (epoch + 1) % 100 == 0:
-            print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(outs[1]),"train_acc=", "{:.5f}".format(outs[2]),
+        if (epoch + 1) % 10 == 0:
+            print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(cost_t),"train_acc=", "{:.5f}".format(acc_t),
                   "val_loss=", "{:.5f}".format(cost), "val_acc=", "{:.5f}".format(acc),"time=", "{:.5f}".format(time.time() - t), improved_str)
             t = time.time()
             improved_str = ''
@@ -195,41 +195,39 @@ def testing_results(epoch_final):
     sess.run(tf.global_variables_initializer())
     sess.run(model.running_vars_initializer)
     # Combine training and validation
-    mask = np.array([x or y for (x,y) in zip(test_mask, val_mask)], dtype = np.bool)
+    mask = np.array([x or y for (x,y) in zip(train_mask, val_mask)], dtype = np.bool)
     # Train model
-    t = time.time()
-    cost_ls = []
-    last_improvement = 0
-    best_accuracy = 0
-    improved_str = ''
+    t, cost_ls, last_improvement, best_accuracy, improved_str = time.time(), [], 0, 0, ''
     for epoch in range(FLAGS.epochs):
         t_epoch = time.time()
-        # Instantiate all inputs
-        features_train = features[mask,:,:]
-        support = support_tensor[mask,:,:,:]
-        y_train = y_arr[mask, :]
-        # Construct feed dictionary
-        feed_dict = construct_feed_dict(features_train, support, y_train, placeholders)
-        feed_dict.update({placeholders['dropout']: FLAGS.dropout})
-        # Reset the counters
+        for batch_mask in get_batch_iterator(mask, FLAGS.batch_size):
+            # Instantiate all inputs
+            features_train = features[batch_mask,:,:]
+            support = support_tensor[batch_mask,:,:,:]
+            y_train = y_arr[batch_mask, :]
+            # Construct feed dictionary
+            feed_dict = construct_feed_dict(features_train, support, y_train, placeholders)
+            feed_dict.update({placeholders['dropout']: FLAGS.dropout})
+            # Training step
+            sess.run(model.running_vars_initializer)
+            sess.run(model.opt_op, feed_dict=feed_dict)
+        # Training Evaluation
         sess.run(model.running_vars_initializer)
-        # Training step
-        outs = sess.run([model.opt_op, model.loss, model.accuracy], feed_dict=feed_dict)
-        # Reset the counters
+        cost_t, acc_t, duration = evaluate(features, support_tensor, y_arr, mask, placeholders, model)
+        # Testing Evaluate
         sess.run(model.running_vars_initializer)
-        # Evaluate
         cost, acc, duration = evaluate(features, support_tensor, y_arr, test_mask, placeholders, model)
         cost_ls.append(cost)
-        epoch_df.iloc[epoch, :] = [outs[1], outs[2], cost, acc, time.time() - t_epoch]
+        epoch_df.iloc[epoch, :] = [cost_t, acc_t, cost, acc, time.time() - t_epoch]
         # Save the model IF training accuracy is a maximum
-        if outs[2] > best_accuracy:
-            best_accuracy = outs[2]
+        if acc_t > best_accuracy:
+            best_accuracy = acc_t
             last_improvement = epoch
             saver.save(sess=sess, save_path=save_path_test)
             improved_str += '*'
         # Print results
-        if (epoch + 1) % 100 == 0:
-            print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(outs[1]),"train_acc=", "{:.5f}".format(outs[2]),
+        if (epoch + 1) % 10 == 0:
+            print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(cost_t),"train_acc=", "{:.5f}".format(acc_t),
                   "test_loss=", "{:.5f}".format(cost), "test_acc=", "{:.5f}".format(acc),"time=", "{:.5f}".format(time.time() - t), improved_str)
             improved_str = ''
             t = time.time()
@@ -273,11 +271,11 @@ if save_validation:
     txt = os.path.join(results, "validation_results.txt")
     if not os.path.exists(txt):
         with open(txt, "w+") as fh:
-            fh.write("Dataset\tTest Dataset\tValidation Accuracy\tMax Epochs\tFinal Epoch\tModel\tMax Degree\tLearning Rate\tDropout\t")
+            fh.write("Dataset\tTest Dataset\tValidation Accuracy\tMax Epochs\tFinal Epoch\tModel\tMax Degree\tBatch Size\tLearning Rate\tDropout\t")
             fh.write("Attention Dimension\tAttention Bias\tGraph Convolution Dimensions\tFully Connected Dimensions\t")
             fh.write("Balanced Training\tWeight Decay\tEarly Stopping\n")
     vals = [FLAGS.dataset, FLAGS.test_dataset, accuracy_validation, FLAGS.epochs,final_epoch, FLAGS.model, FLAGS.max_degree,
-            FLAGS.learning_rate, FLAGS.dropout, FLAGS.attention_dim, FLAGS.attention_bias, FLAGS.graph_conv_dimensions,
+            FLAGS.batch_size, FLAGS.learning_rate, FLAGS.dropout, FLAGS.attention_dim, FLAGS.attention_bias, FLAGS.graph_conv_dimensions,
             FLAGS.connected_dimensions, FLAGS.balanced_training, FLAGS.weight_decay, FLAGS.early_stopping]
     with open(txt, "a") as fh:
         string = ""

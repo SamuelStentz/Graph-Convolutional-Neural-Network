@@ -96,7 +96,7 @@ class protein_graph:
         # make pose from pdb
         if pdb_file_path != None:
             try:
-                cleanATOM(pdb_file_path)
+                cleanATOM(pdb_file_path)##### Need to fix this #####
                 pose = pose_from_pdb(pdb_file_path)
             except:
                 raise PathNotDeclaredError("Failed to generate pose, file path invalid or other issue")
@@ -281,6 +281,13 @@ class protein_graph:
                     self.V[:, counter] = self.V[:, counter] / max(abs(self.V[:, counter]))
         counter_F += energy_terms
 
+        # New node feature
+        """
+        if params["new feature"]:
+            self.V[:, counter_F] = whatever
+            counter_F += 1
+        """
+        
         # Interface-Substrate boolean
         if params["interface_boolean"]:
             self.V[0:len(substrate_indices),counter_F] = np.array([1 for x in range(len(substrate_indices))])
@@ -386,7 +393,6 @@ def index_interface_k_nearest(pose, active_site, substrate_indices, k, protease 
     for i in range(1, 1 + len(pose.sequence())):
         if i not in substrate_indices:
             prot_indices.append(i)
-    
     # get min distances from all protease residues to substrate (using CA)
     arr = np.zeros(shape = (len(prot_indices), 2))
     for i in range(len(prot_indices)):
@@ -416,7 +422,6 @@ def index_interface_nearest_residuewise(pose, active_site, substrate_indices, k,
     Interface is defined as the k closest residues in the protease BY RESIDUE IN SUBSTRATE. They are in the order
     of substrates supplied i.e. substrate_indices = [1, 2] -> [1th ... 1kth, 2th ... 2kth]. IF the number is not
     divisible by len(substrate_indices) then a hard cutoff is used (definitely bad)"""
-    
     total_substrates = k
     
     if len(substrate_indices) % k == 0:
