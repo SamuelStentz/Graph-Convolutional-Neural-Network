@@ -4,7 +4,7 @@
 
 
 """
-python text_to_slurm.py -txt model_generation.txt -tf -job_name M -path_operation /scratch/ss3410/Graph-Convolutional-Neural-Network/GCNClassifier -path_sh /scratch/ss3410/Graph-Convolutional-Neural-Network/Commands -mem 12000 -batch 100 -time 3-00:00:00
+python text_to_slurm.py -txt model_generation.txt -tf -job_name M -path_operation /scratch/ss3410/Graph-Convolutional-Neural-Network/Model -path_sh /scratch/ss3410/Graph-Convolutional-Neural-Network/Commands -mem 12000 -batch 100 -time 3-00:00:00
 python text_to_slurm.py -txt graph_generation.txt -job_name G -path_operation /scratch/ss3410/Graph-Convolutional-Neural-Network -path_sh /scratch/ss3410/Graph-Convolutional-Neural-Network/Commands -mem 8000 -batch 1 -time 10:00:00"""
 
 
